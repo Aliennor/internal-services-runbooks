@@ -21,8 +21,8 @@ Scope:
 
 Current images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24`
-- prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r4`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25`
+- prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r5`
 
 Current prod names:
 
@@ -67,13 +67,13 @@ Before preparing `107`, complete:
 ## 3) Reuse Or Extract The Installer On 106
 
 Run on `10.11.115.106` only if `/opt/orbina/internal_services` is missing or
-you want the refreshed `r24` content:
+you want the refreshed `r25` content:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25 \
   /output
 ```
 
@@ -82,13 +82,13 @@ podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
 Run on `10.11.115.106`:
 
 ```bash
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r4
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r5
 read -rsp 'Config bundle passphrase: ' CONFIG_BUNDLE_PASSPHRASE; echo
 podman run --rm \
   -e CONFIG_BUNDLE_MODE=force \
   -e CONFIG_BUNDLE_PASSPHRASE="$CONFIG_BUNDLE_PASSPHRASE" \
   -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r4 \
+  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r5 \
   /output
 unset CONFIG_BUNDLE_PASSPHRASE
 ```
@@ -96,7 +96,7 @@ unset CONFIG_BUNDLE_PASSPHRASE
 Verify the rendered active inputs:
 
 ```bash
-grep -E '^(NODE_ROLE|PRIMARY_HOST|PEER_HOST|PASSIVE_SSH_HOST|OPENWEBUI_PUBLIC_HOST|LITELLM_PUBLIC_HOST|LANGFUSE_PUBLIC_HOST|RAGFLOW_PUBLIC_HOST|PUBLIC_URL_SCHEME|OPENWEBUI_NGINX_CONFIG_PATH|RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP)=' \
+grep -E '^(NODE_ROLE|PRIMARY_HOST|PEER_HOST|PASSIVE_SSH_HOST|OPENWEBUI_PUBLIC_HOST|LITELLM_PUBLIC_HOST|LANGFUSE_PUBLIC_HOST|RAGFLOW_PUBLIC_HOST|PUBLIC_URL_SCHEME|DIRECT_PUBLIC_BASE_SCHEME|DIRECT_PUBLIC_BASE_HOST|LITELLM_BROWSER_URL|LANGFUSE_BROWSER_URL|OPENWEBUI_NGINX_CONFIG_PATH|RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP|PRE_CLEAN_INSTALL_ATTEMPT)=' \
   /opt/orbina/incoming/ha.vm1.env || true
 ```
 
@@ -105,8 +105,11 @@ Expected:
 - `PRIMARY_HOST=10.11.115.106`
 - `PEER_HOST=10.11.115.107`
 - `PUBLIC_URL_SCHEME=http`
+- `DIRECT_PUBLIC_BASE_SCHEME=http`
+- `DIRECT_PUBLIC_BASE_HOST=10.11.115.106`
 - `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.http-only.generated.conf`
 - `RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP=true`
+- `PRE_CLEAN_INSTALL_ATTEMPT=true`
 - no TLS cert or key is expected under `/opt/orbina/incoming/` for prod
 
 ## 5) Reuse Or Stage The Ragflow Export On 106
@@ -148,12 +151,14 @@ ops/install/katilim/install-node.sh \
 ops/install/katilim/bootstrap-vm1-active.sh
 ```
 
-The refreshed `r24` bundle now does all of this in the canonical prod path:
+The refreshed `r25` bundle now does all of this in the canonical prod path:
 
+- pre-cleans leftover containers and failed compose state from earlier tries
 - keeps the node runtime HTTP-first
 - performs a one-time destructive reset for all non-Ragflow app state on `106`
 - recreates non-Ragflow DBs and users from zero during startup
 - preserves and restores Ragflow data when the export is present on `106`
+- writes direct browser URLs for LiteLLM and Langfuse so the active node stays usable with `http://10.11.115.106:4000` and `http://10.11.115.106:3000` before DNS/LB cutover
 - includes the Redis/Langfuse bootstrap fix
 - includes the fixed LiteLLM `custom_auth.py` for UI/admin login
 
@@ -163,18 +168,18 @@ Run on `10.11.115.107`:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25 \
   /output
 
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r4
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r5
 read -rsp 'Config bundle passphrase: ' CONFIG_BUNDLE_PASSPHRASE; echo
 podman run --rm \
   -e CONFIG_BUNDLE_MODE=force \
   -e CONFIG_BUNDLE_PASSPHRASE="$CONFIG_BUNDLE_PASSPHRASE" \
   -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r4 \
+  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r5 \
   /output
 unset CONFIG_BUNDLE_PASSPHRASE
 ```
@@ -182,7 +187,7 @@ unset CONFIG_BUNDLE_PASSPHRASE
 Verify the rendered passive inputs:
 
 ```bash
-grep -E '^(NODE_ROLE|PRIMARY_HOST|PEER_HOST|PASSIVE_SSH_HOST|PUBLIC_URL_SCHEME|OPENWEBUI_NGINX_CONFIG_PATH|RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP)=' \
+grep -E '^(NODE_ROLE|PRIMARY_HOST|PEER_HOST|PASSIVE_SSH_HOST|PUBLIC_URL_SCHEME|DIRECT_PUBLIC_BASE_SCHEME|DIRECT_PUBLIC_BASE_HOST|LITELLM_BROWSER_URL|LANGFUSE_BROWSER_URL|OPENWEBUI_NGINX_CONFIG_PATH|RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP|PRE_CLEAN_INSTALL_ATTEMPT)=' \
   /opt/orbina/incoming/ha.vm2.env || true
 ```
 
@@ -192,8 +197,11 @@ Expected:
 - `PEER_HOST=10.11.115.106`
 - `PASSIVE_SSH_HOST=10.11.115.106`
 - `PUBLIC_URL_SCHEME=http`
+- `DIRECT_PUBLIC_BASE_SCHEME=http`
+- `DIRECT_PUBLIC_BASE_HOST=10.11.115.106`
 - `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.http-only.generated.conf`
 - `RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP=true`
+- `PRE_CLEAN_INSTALL_ATTEMPT=true`
 
 ## 8) Install And Bootstrap 107 As Passive
 

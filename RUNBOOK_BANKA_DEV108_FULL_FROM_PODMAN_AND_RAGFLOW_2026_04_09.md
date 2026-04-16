@@ -21,8 +21,8 @@ Scope:
 
 Current images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24`
-- dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-16-r4`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25`
+- dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r5`
 
 Current dev names:
 
@@ -41,7 +41,7 @@ Direct fallback access:
 - Ragflow: `http://10.11.115.108:8100`
 - Qdrant: `http://10.11.115.108:6333`
 
-Expected HTTPS access:
+Expected DNS/TLS access when DNS is ready:
 
 - `https://zfgasistan-yzyonetim-dev.ziraat.bank`
 - `https://manavgat-yzyonetim-dev.ziraat.bank`
@@ -69,13 +69,13 @@ If Podman and compose already work, do not rerun the full Podman bootstrap.
 ## 2) Reuse Or Extract The Installer Bundle
 
 Run on `10.11.115.108` only if `/opt/orbina/internal_services` is missing or
-you want the refreshed `r24` installer content:
+you want the refreshed `r25` installer content:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25 \
   /output
 ```
 
@@ -92,13 +92,13 @@ already exist on that node as:
 Run on `10.11.115.108`:
 
 ```bash
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-16-r4
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r5
 read -rsp 'Config bundle passphrase: ' CONFIG_BUNDLE_PASSPHRASE; echo
 podman run --rm \
   -e CONFIG_BUNDLE_MODE=force \
   -e CONFIG_BUNDLE_PASSPHRASE="$CONFIG_BUNDLE_PASSPHRASE" \
   -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-16-r4 \
+  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r5 \
   /output
 unset CONFIG_BUNDLE_PASSPHRASE
 ```
@@ -106,7 +106,7 @@ unset CONFIG_BUNDLE_PASSPHRASE
 Verify the rendered dev inputs:
 
 ```bash
-grep -E '^(NODE_ROLE|PRIMARY_HOST|PASSIVE_SSH_HOST|OPENWEBUI_PUBLIC_HOST|LITELLM_PUBLIC_HOST|LANGFUSE_PUBLIC_HOST|RAGFLOW_PUBLIC_HOST|PUBLIC_URL_SCHEME|OPENWEBUI_NGINX_CONFIG_PATH|NODE_TLS_CERT_SOURCE_PATH|NODE_TLS_KEY_SOURCE_PATH|RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP)=' \
+grep -E '^(NODE_ROLE|PRIMARY_HOST|PASSIVE_SSH_HOST|OPENWEBUI_PUBLIC_HOST|LITELLM_PUBLIC_HOST|LANGFUSE_PUBLIC_HOST|RAGFLOW_PUBLIC_HOST|PUBLIC_URL_SCHEME|DIRECT_PUBLIC_BASE_SCHEME|DIRECT_PUBLIC_BASE_HOST|LITELLM_BROWSER_URL|LANGFUSE_BROWSER_URL|OPENWEBUI_NGINX_CONFIG_PATH|NODE_TLS_CERT_SOURCE_PATH|NODE_TLS_KEY_SOURCE_PATH|RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP|PRE_CLEAN_INSTALL_ATTEMPT)=' \
   /opt/orbina/incoming/ha.vm1.env || true
 ls -l /tmp/cert.pem /tmp/private.key
 ```
@@ -116,8 +116,11 @@ Expected:
 - `PRIMARY_HOST=10.11.115.108`
 - `PASSIVE_SSH_HOST=127.0.0.1`
 - `PUBLIC_URL_SCHEME=https`
+- `DIRECT_PUBLIC_BASE_SCHEME=http`
+- `DIRECT_PUBLIC_BASE_HOST=10.11.115.108`
 - `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.generated.conf`
 - `RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP=true`
+- `PRE_CLEAN_INSTALL_ATTEMPT=true`
 - `NODE_TLS_CERT_SOURCE_PATH=/tmp/cert.pem`
 - `NODE_TLS_KEY_SOURCE_PATH=/tmp/private.key`
 - cert/key files are present under `/tmp` on `108`
@@ -159,13 +162,15 @@ ops/install/katilim/install-node.sh \
 ops/install/katilim/bootstrap-vm1-active.sh
 ```
 
-The refreshed `r24` bundle now does all of this in the canonical path:
+The refreshed `r25` bundle now does all of this in the canonical path:
 
+- pre-cleans leftover containers and failed compose state from earlier tries
 - uses the Banka dev TLS nginx config by default
 - installs the dev certificate and key from `/tmp` on `108`
 - performs a one-time destructive reset for all non-Ragflow app state
 - recreates non-Ragflow DBs and users from zero during startup
 - preserves and restores Ragflow data when the export is present
+- writes direct browser URLs for LiteLLM and Langfuse so `http://10.11.115.108:4000` and `http://10.11.115.108:3000` stay usable before DNS is ready
 - includes the Redis/Langfuse bootstrap fix
 - includes the fixed LiteLLM `custom_auth.py` for UI/admin login
 
@@ -180,6 +185,8 @@ test -f /etc/pki/tls/private/private.key
 podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 systemctl --failed --no-pager || true
 curl -fsS http://127.0.0.1:18081/ready
+curl -I http://127.0.0.1:4000/ || true
+curl -I http://127.0.0.1:3000/ || true
 curl -kI --resolve zfgasistan-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://zfgasistan-yzyonetim-dev.ziraat.bank/
 curl -kI --resolve manavgat-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://manavgat-yzyonetim-dev.ziraat.bank/
 curl -kI --resolve mercek-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://mercek-yzyonetim-dev.ziraat.bank/
@@ -201,5 +208,6 @@ curl -I http://10.11.115.108:8100/
 ## 7) Notes
 
 - Dev now defaults to node-local TLS.
+- The direct IP:port URLs above are the primary bring-up path until DNS is confirmed.
 - Direct IP and service ports remain useful for fallback and debugging.
 - The non-Ragflow fresh reset is one-shot; later reruns of the active bootstrap do not wipe again once the marker exists.

@@ -71,12 +71,20 @@ NODE_TLS_CERT_SOURCE_PATH=/tmp/cert.pem
 NODE_TLS_KEY_SOURCE_PATH=/tmp/private.key
 GENERATE_SELF_SIGNED_TLS=false
 PUBLIC_URL_SCHEME=https
+DIRECT_PUBLIC_BASE_SCHEME=http
+DIRECT_PUBLIC_BASE_HOST=10.11.115.108
 OPENWEBUI_NGINX_CONFIG_PATH=./nginx.generated.conf
 ```
 
 So you do not need to hand-edit an inventory or rebuild the dev config image
 just to include the certificate and key. The installer on `108` copies them
 from `/tmp` directly during `install-node.sh`.
+
+LiteLLM and Langfuse browser URLs default to direct HTTP on the node IP during
+bring-up, so unresolved DNS does not block login:
+
+- LiteLLM: `http://10.11.115.108:4000`
+- Langfuse: `http://10.11.115.108:3000`
 
 Installed paths on the dev node remain:
 

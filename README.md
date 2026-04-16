@@ -14,5 +14,5 @@ Layout:
 Refresh command from the parent project root:
 
 ```bash
-rtk proxy sh -c 'rg --files -g "RUNBOOK*.md" | cpio -pdm internal_services_runbooks/source_paths'
+rtk proxy sh -c 'rg --files -g "RUNBOOK*.md" | cpio -pdm 10_reference/runbooks/internal_services_runbooks/source_paths'
 ```

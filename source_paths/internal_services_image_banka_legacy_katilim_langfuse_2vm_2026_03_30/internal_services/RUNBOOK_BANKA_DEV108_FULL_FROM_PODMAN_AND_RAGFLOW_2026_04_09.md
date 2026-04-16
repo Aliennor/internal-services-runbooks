@@ -6,14 +6,13 @@ Use this for the live Banka dev `10.11.115.108` path only.
 
 Operator note:
 
-- these commands assume you already switched to the target machine and, when
-  needed, already became `root`
+- these commands assume you already switched to the target machine and, when needed, already became `root`
 - the runbook intentionally does not repeat `sudo su -`
 
 Scope:
 
 - single-node only
-- HTTP-first
+- dev defaults to node-local TLS
 - no passive node
 - no LB in the runtime path
 - Podman may already be configured
@@ -22,8 +21,8 @@ Scope:
 
 Current images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-16-r22`
-- dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-16-r3`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24`
+- dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-16-r4`
 
 Current dev names:
 
@@ -33,7 +32,7 @@ Current dev names:
 - `mercek-yzyonetim-dev.ziraat.bank`
 - `mecra-yzyonetim-dev.ziraat.bank`
 
-Direct first-deploy access:
+Direct fallback access:
 
 - OpenWebUI: `http://10.11.115.108:8080`
 - LiteLLM: `http://10.11.115.108:4000`
@@ -41,6 +40,14 @@ Direct first-deploy access:
 - Langfuse: `http://10.11.115.108:3000`
 - Ragflow: `http://10.11.115.108:8100`
 - Qdrant: `http://10.11.115.108:6333`
+
+Expected HTTPS access:
+
+- `https://zfgasistan-yzyonetim-dev.ziraat.bank`
+- `https://manavgat-yzyonetim-dev.ziraat.bank`
+- `https://aykal-yzyonetim-dev.ziraat.bank`
+- `https://mercek-yzyonetim-dev.ziraat.bank`
+- `https://mecra-yzyonetim-dev.ziraat.bank`
 
 ## 1) Reuse The Current Machine State
 
@@ -62,28 +69,36 @@ If Podman and compose already work, do not rerun the full Podman bootstrap.
 ## 2) Reuse Or Extract The Installer Bundle
 
 Run on `10.11.115.108` only if `/opt/orbina/internal_services` is missing or
-you want the refreshed `r22` installer content:
+you want the refreshed `r24` installer content:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-16-r22
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-16-r22 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24 \
   /output
 ```
 
 ## 3) Apply The Dev Encrypted Config
 
+Before running `install-node.sh` on `108`, make sure the certificate and key
+already exist on that node as:
+
+```text
+/tmp/cert.pem
+/tmp/private.key
+```
+
 Run on `10.11.115.108`:
 
 ```bash
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-16-r3
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-16-r4
 read -rsp 'Config bundle passphrase: ' CONFIG_BUNDLE_PASSPHRASE; echo
 podman run --rm \
   -e CONFIG_BUNDLE_MODE=force \
   -e CONFIG_BUNDLE_PASSPHRASE="$CONFIG_BUNDLE_PASSPHRASE" \
   -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-16-r3 \
+  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-16-r4 \
   /output
 unset CONFIG_BUNDLE_PASSPHRASE
 ```
@@ -91,16 +106,21 @@ unset CONFIG_BUNDLE_PASSPHRASE
 Verify the rendered dev inputs:
 
 ```bash
-grep -E '^(NODE_ROLE|PRIMARY_HOST|PEER_HOST|PASSIVE_SSH_HOST|OPENWEBUI_PUBLIC_HOST|LITELLM_PUBLIC_HOST|LANGFUSE_PUBLIC_HOST|RAGFLOW_PUBLIC_HOST|OPENWEBUI_NGINX_CONFIG_PATH)=' \
+grep -E '^(NODE_ROLE|PRIMARY_HOST|PASSIVE_SSH_HOST|OPENWEBUI_PUBLIC_HOST|LITELLM_PUBLIC_HOST|LANGFUSE_PUBLIC_HOST|RAGFLOW_PUBLIC_HOST|PUBLIC_URL_SCHEME|OPENWEBUI_NGINX_CONFIG_PATH|NODE_TLS_CERT_SOURCE_PATH|NODE_TLS_KEY_SOURCE_PATH|RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP)=' \
   /opt/orbina/incoming/ha.vm1.env || true
+ls -l /tmp/cert.pem /tmp/private.key
 ```
 
 Expected:
 
 - `PRIMARY_HOST=10.11.115.108`
 - `PASSIVE_SSH_HOST=127.0.0.1`
-- `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.http-only.generated.conf`
-- new `*-yzyonetim-dev.ziraat.bank` hostnames
+- `PUBLIC_URL_SCHEME=https`
+- `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.generated.conf`
+- `RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP=true`
+- `NODE_TLS_CERT_SOURCE_PATH=/tmp/cert.pem`
+- `NODE_TLS_KEY_SOURCE_PATH=/tmp/private.key`
+- cert/key files are present under `/tmp` on `108`
 
 ## 4) Reuse Or Stage The Ragflow Export
 
@@ -139,23 +159,30 @@ ops/install/katilim/install-node.sh \
 ops/install/katilim/bootstrap-vm1-active.sh
 ```
 
-The refreshed `r22` bundle already includes:
+The refreshed `r24` bundle now does all of this in the canonical path:
 
-- the Redis/Langfuse bootstrap fix
-- the Banka dev PostgreSQL HA skip on single-node `108`
-- the fixed LiteLLM `custom_auth.py` for UI/admin login
+- uses the Banka dev TLS nginx config by default
+- installs the dev certificate and key from `/tmp` on `108`
+- performs a one-time destructive reset for all non-Ragflow app state
+- recreates non-Ragflow DBs and users from zero during startup
+- preserves and restores Ragflow data when the export is present
+- includes the Redis/Langfuse bootstrap fix
+- includes the fixed LiteLLM `custom_auth.py` for UI/admin login
 
 ## 6) Validate Dev 108
 
 Run on `10.11.115.108`:
 
 ```bash
+test -f /var/lib/internal-services-ha/banka_non_ragflow_reset_complete
+test -f /etc/pki/tls/certs/cert.pem
+test -f /etc/pki/tls/private/private.key
 podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 systemctl --failed --no-pager || true
 curl -fsS http://127.0.0.1:18081/ready
-curl -I http://127.0.0.1:8080/ || true
-curl -I http://127.0.0.1:4000/ || true
-curl -I http://127.0.0.1:3000/ || true
+curl -kI --resolve zfgasistan-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://zfgasistan-yzyonetim-dev.ziraat.bank/
+curl -kI --resolve manavgat-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://manavgat-yzyonetim-dev.ziraat.bank/
+curl -kI --resolve mercek-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://mercek-yzyonetim-dev.ziraat.bank/
 curl -I http://127.0.0.1:5678/ || true
 curl -I http://127.0.0.1:8100/ || true
 podman logs --tail=120 litellm || true
@@ -164,18 +191,15 @@ podman logs --tail=120 litellm || true
 Remote checks from your workstation or another server:
 
 ```bash
-curl -I http://10.11.115.108:8080/
-curl -I http://10.11.115.108:4000/
-curl -I http://10.11.115.108:3000/
+curl -kI https://zfgasistan-yzyonetim-dev.ziraat.bank/
+curl -kI https://manavgat-yzyonetim-dev.ziraat.bank/
+curl -kI https://mercek-yzyonetim-dev.ziraat.bank/
 curl -I http://10.11.115.108:5678/
 curl -I http://10.11.115.108:8100/
 ```
 
 ## 7) Notes
 
-- Dev runtime stays HTTP-first.
-- Optional node-local dev cert placement is documented only in:
-  - `RUNBOOK_BANKA_DNS_TLS_CUTOVER_2026_04_09.md`
-- If you must temporarily force all public URLs to direct IP/port values, the
-  separate IP/port troubleshooting patch remains available, but it is not part
-  of the normal Banka runtime path.
+- Dev now defaults to node-local TLS.
+- Direct IP and service ports remain useful for fallback and debugging.
+- The non-Ragflow fresh reset is one-shot; later reruns of the active bootstrap do not wipe again once the marker exists.

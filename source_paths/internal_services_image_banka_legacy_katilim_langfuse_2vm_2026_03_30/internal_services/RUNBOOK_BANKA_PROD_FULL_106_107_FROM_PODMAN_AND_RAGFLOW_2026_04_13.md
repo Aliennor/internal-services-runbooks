@@ -6,15 +6,14 @@ Use this for the live Banka production path only.
 
 Operator note:
 
-- these commands assume you already switched to the target machine and, when
-  needed, already became `root`
+- these commands assume you already switched to the target machine and, when needed, already became `root`
 - the runbook intentionally does not repeat `sudo su -`
 
 Scope:
 
 - `10.11.115.106` comes up first as the active node
 - `10.11.115.107` is added later as the passive node
-- runtime stays HTTP-first
+- runtime stays HTTP-first on the nodes
 - Ragflow data is seeded only on `106`
 - Podman may already be configured
 - installer trees may already be extracted
@@ -22,8 +21,8 @@ Scope:
 
 Current images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-16-r22`
-- prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r3`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24`
+- prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r4`
 
 Current prod names:
 
@@ -68,13 +67,13 @@ Before preparing `107`, complete:
 ## 3) Reuse Or Extract The Installer On 106
 
 Run on `10.11.115.106` only if `/opt/orbina/internal_services` is missing or
-you want the refreshed `r22` content:
+you want the refreshed `r24` content:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-16-r22
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-16-r22 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24 \
   /output
 ```
 
@@ -83,13 +82,13 @@ podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
 Run on `10.11.115.106`:
 
 ```bash
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r3
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r4
 read -rsp 'Config bundle passphrase: ' CONFIG_BUNDLE_PASSPHRASE; echo
 podman run --rm \
   -e CONFIG_BUNDLE_MODE=force \
   -e CONFIG_BUNDLE_PASSPHRASE="$CONFIG_BUNDLE_PASSPHRASE" \
   -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r3 \
+  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r4 \
   /output
 unset CONFIG_BUNDLE_PASSPHRASE
 ```
@@ -97,7 +96,7 @@ unset CONFIG_BUNDLE_PASSPHRASE
 Verify the rendered active inputs:
 
 ```bash
-grep -E '^(NODE_ROLE|PRIMARY_HOST|PEER_HOST|PASSIVE_SSH_HOST|OPENWEBUI_PUBLIC_HOST|LITELLM_PUBLIC_HOST|LANGFUSE_PUBLIC_HOST|RAGFLOW_PUBLIC_HOST|OPENWEBUI_NGINX_CONFIG_PATH)=' \
+grep -E '^(NODE_ROLE|PRIMARY_HOST|PEER_HOST|PASSIVE_SSH_HOST|OPENWEBUI_PUBLIC_HOST|LITELLM_PUBLIC_HOST|LANGFUSE_PUBLIC_HOST|RAGFLOW_PUBLIC_HOST|PUBLIC_URL_SCHEME|OPENWEBUI_NGINX_CONFIG_PATH|RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP)=' \
   /opt/orbina/incoming/ha.vm1.env || true
 ```
 
@@ -105,8 +104,10 @@ Expected:
 
 - `PRIMARY_HOST=10.11.115.106`
 - `PEER_HOST=10.11.115.107`
+- `PUBLIC_URL_SCHEME=http`
 - `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.http-only.generated.conf`
-- new `*-yzyonetim.ziraat.bank` hostnames
+- `RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP=true`
+- no TLS cert or key is expected under `/opt/orbina/incoming/` for prod
 
 ## 5) Reuse Or Stage The Ragflow Export On 106
 
@@ -147,11 +148,14 @@ ops/install/katilim/install-node.sh \
 ops/install/katilim/bootstrap-vm1-active.sh
 ```
 
-The refreshed `r22` bundle already includes:
+The refreshed `r24` bundle now does all of this in the canonical prod path:
 
-- the Redis/Langfuse bootstrap fix
-- the fixed LiteLLM `custom_auth.py` for UI/admin login
-- the current HTTP-first nginx generation path
+- keeps the node runtime HTTP-first
+- performs a one-time destructive reset for all non-Ragflow app state on `106`
+- recreates non-Ragflow DBs and users from zero during startup
+- preserves and restores Ragflow data when the export is present on `106`
+- includes the Redis/Langfuse bootstrap fix
+- includes the fixed LiteLLM `custom_auth.py` for UI/admin login
 
 ## 7) Prepare 107 With The Same Installer And Config
 
@@ -159,18 +163,18 @@ Run on `10.11.115.107`:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-16-r22
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-16-r22 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24 \
   /output
 
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r3
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r4
 read -rsp 'Config bundle passphrase: ' CONFIG_BUNDLE_PASSPHRASE; echo
 podman run --rm \
   -e CONFIG_BUNDLE_MODE=force \
   -e CONFIG_BUNDLE_PASSPHRASE="$CONFIG_BUNDLE_PASSPHRASE" \
   -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r3 \
+  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r4 \
   /output
 unset CONFIG_BUNDLE_PASSPHRASE
 ```
@@ -178,7 +182,7 @@ unset CONFIG_BUNDLE_PASSPHRASE
 Verify the rendered passive inputs:
 
 ```bash
-grep -E '^(NODE_ROLE|PRIMARY_HOST|PEER_HOST|PASSIVE_SSH_HOST|OPENWEBUI_PUBLIC_HOST|LITELLM_PUBLIC_HOST|LANGFUSE_PUBLIC_HOST|RAGFLOW_PUBLIC_HOST|OPENWEBUI_NGINX_CONFIG_PATH)=' \
+grep -E '^(NODE_ROLE|PRIMARY_HOST|PEER_HOST|PASSIVE_SSH_HOST|PUBLIC_URL_SCHEME|OPENWEBUI_NGINX_CONFIG_PATH|RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP)=' \
   /opt/orbina/incoming/ha.vm2.env || true
 ```
 
@@ -187,7 +191,9 @@ Expected:
 - `PRIMARY_HOST=10.11.115.106`
 - `PEER_HOST=10.11.115.106`
 - `PASSIVE_SSH_HOST=10.11.115.106`
+- `PUBLIC_URL_SCHEME=http`
 - `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.http-only.generated.conf`
+- `RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP=true`
 
 ## 8) Install And Bootstrap 107 As Passive
 
@@ -203,6 +209,9 @@ ops/install/katilim/install-node.sh \
 ops/install/katilim/bootstrap-vm2-passive.sh
 ```
 
+The passive path does not run the destructive non-Ragflow reset. `107` should
+rebuild from the cleaned active side.
+
 ## 9) Enable Sync On 106 And Validate
 
 Enable sync on `106`:
@@ -215,6 +224,7 @@ ops/install/katilim/enable-vm1-passive-sync.sh
 Validate on `106`:
 
 ```bash
+test -f /var/lib/internal-services-ha/banka_non_ragflow_reset_complete
 podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 systemctl status internal-services-ha-sync-light.timer --no-pager || true
 systemctl status internal-services-ha-sync-heavy.timer --no-pager || true
@@ -247,10 +257,9 @@ curl -I http://10.11.115.106:8100/
 
 ## 10) Notes
 
-- Production runtime stays HTTP-first.
+- Production runtime stays HTTP-first on the nodes.
 - Future LB traffic should be:
   - `HTTPS client -> LB -> HTTP :80 on 106/107`
-- Do not place the prod certificate and private key on `106` or `107` for the
-  canonical runtime path.
-- DNS, LB, and optional dev cert placement live only in:
+- Do not place the prod certificate and private key on `106` or `107` for the canonical runtime path.
+- DNS, LB, and dev cert source paths live only in:
   - `RUNBOOK_BANKA_DNS_TLS_CUTOVER_2026_04_09.md`

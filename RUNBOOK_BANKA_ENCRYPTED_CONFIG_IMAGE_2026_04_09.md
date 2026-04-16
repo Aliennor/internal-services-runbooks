@@ -1,17 +1,18 @@
 # Banka Encrypted Config Image
 
-Date: 2026-04-09
+Date: 2026-04-16
 
 Use this after extracting the shared installer bundle.
 
 ## Published Image
 
-Current banka encrypted config images:
+Current Banka encrypted config images:
 
-- dev `108`: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-16-r3`
-- prod `106/107`: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r3`
+- dev `108`: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-16-r4`
+- prod `106/107`: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r4`
 
-These images contain the live banka `.env` set and rendered HA inputs in encrypted form. Use the dev image on `108`; use the prod image on `106/107`.
+These images contain the live Banka `.env` set and rendered HA inputs in
+encrypted form. Use the dev image on `108`; use the prod image on `106/107`.
 
 ## What It Restores
 
@@ -28,7 +29,13 @@ It writes these files under `/opt/orbina`:
 - `incoming/ha.vm1.env`
 - `incoming/ha.vm2.env`
 
-If the bundle was built with TLS files or Ragflow volume export included, those are restored under `incoming/` too.
+The dev `r4` image does not need to restore the certificate and key.
+For dev `108`, `install-node.sh` reads them directly from:
+
+- `/tmp/cert.pem`
+- `/tmp/private.key`
+
+on the target node.
 
 ## VM Commands
 
@@ -54,8 +61,8 @@ unset CONFIG_BUNDLE_PASSPHRASE
 Use `<TAG>` as:
 
 ```text
-banka-langfuse-dev108-2026-04-16-r3
-banka-langfuse-prod-2026-04-16-r3
+banka-langfuse-dev108-2026-04-16-r4
+banka-langfuse-prod-2026-04-16-r4
 ```
 
 ## Apply Order
@@ -63,12 +70,13 @@ banka-langfuse-prod-2026-04-16-r3
 Use this order on a target VM:
 
 1. Extract the shared install bundle.
-1. Extract the encrypted config image.
-1. If needed, upload Ragflow volume export to `/opt/orbina/incoming/ragflow_volumes_export`.
-1. Continue with the relevant banka rollout runbook.
+2. Extract the encrypted config image.
+3. If needed, upload Ragflow volume export to `/opt/orbina/incoming/ragflow_volumes_export`.
+4. Continue with the relevant Banka rollout runbook.
 
 ## Notes
 
 - `106` is the only target that should be seeded before the first production bootstrap.
 - `107` gets the encrypted config too, but not the Ragflow volume export.
 - `108` uses the same encrypted config image flow before the dev bootstrap.
+- The first active bootstrap now performs a one-time fresh reset for all non-Ragflow app state.

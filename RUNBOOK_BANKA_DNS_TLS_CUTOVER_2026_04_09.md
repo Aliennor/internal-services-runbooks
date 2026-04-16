@@ -1,4 +1,4 @@
-# Banka DNS, LB, HTTP, And Dev Cert Placement
+# Banka DNS, LB, And TLS Placement
 
 Date: 2026-04-16
 
@@ -42,8 +42,8 @@ Production rules:
 - terminate TLS on the LB
 - forward plain HTTP from the LB to active nginx on port `80`
 - keep `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.http-only.generated.conf`
-- do not place the prod certificate and private key on `106` or `107` for the
-  normal runtime path
+- keep `PUBLIC_URL_SCHEME=http`
+- do not place the prod certificate and private key on `106` or `107` for the normal runtime path
 
 If the real LB or VIP IP changes, update only:
 
@@ -54,44 +54,34 @@ LOAD_BALANCER_IP=<REAL_LB_OR_VIP_IP>
 then regenerate the HA inputs or rebuild the encrypted config image
 intentionally.
 
-## 3) Optional Dev Node-Local Certificate Placement
+## 3) Dev Certificate Source Files
 
-The main dev runtime path stays HTTP-first. If you later want node-local TLS on
-dev `108`, place the existing certificate and key on the admin host or company
-server that holds the extracted Banka installer tree, then set:
-
-Recommended source naming on the admin host:
-
-- certificate: `cert.pem`
-- private key: `private.key`
-
-The source filenames can technically be anything, but using those names keeps
-the operator flow simple and matches the final installed filenames on the node.
+The main dev runtime path now expects the build machine to already have:
 
 ```text
-COPY_TLS=true
-LOCAL_CERT_PATH=/absolute/path/to/cert.pem
-LOCAL_KEY_PATH=/absolute/path/to/private.key
-OPENWEBUI_NGINX_CONFIG_PATH=./nginx.generated.conf
-GENERATE_SELF_SIGNED_TLS=false
+/tmp/cert.pem
+/tmp/private.key
 ```
 
-Rebuild the secure config bundle or encrypted config image intentionally, then
-rerun install on `108`.
+The Banka dev install defaults are:
 
-Installed paths on the node remain:
+```text
+COPY_TLS=false
+NODE_TLS_CERT_SOURCE_PATH=/tmp/cert.pem
+NODE_TLS_KEY_SOURCE_PATH=/tmp/private.key
+GENERATE_SELF_SIGNED_TLS=false
+PUBLIC_URL_SCHEME=https
+OPENWEBUI_NGINX_CONFIG_PATH=./nginx.generated.conf
+```
+
+So you do not need to hand-edit an inventory or rebuild the dev config image
+just to include the certificate and key. The installer on `108` copies them
+from `/tmp` directly during `install-node.sh`.
+
+Installed paths on the dev node remain:
 
 - `/etc/pki/tls/certs/cert.pem`
 - `/etc/pki/tls/private/private.key`
-
-Production naming and placement:
-
-- do not copy the prod certificate or key to `106` or `107`
-- keep them only on the LB
-- use the filenames and import path format your LB expects
-
-CSR generation is intentionally out of the runtime flow and out of this
-reference path.
 
 ## 4) Validation
 
@@ -102,7 +92,14 @@ curl -I https://zfgasistan-yzyonetim.ziraat.bank/
 curl -I https://manavgat-yzyonetim.ziraat.bank/health
 ```
 
-HTTP-first direct fallback:
+Dev node-local TLS:
+
+```bash
+curl -kI https://zfgasistan-yzyonetim-dev.ziraat.bank/
+curl -kI https://manavgat-yzyonetim-dev.ziraat.bank/
+```
+
+HTTP fallback checks:
 
 ```bash
 curl -I http://10.11.115.106:8080/

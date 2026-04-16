@@ -7,23 +7,23 @@ dev `108` runbook and the Banka prod `106/107` runbook below.
 
 Current published images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-16-r22`
-- dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-16-r3`
-- prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r3`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24`
+- dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-16-r4`
+- prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r4`
 
 ## 1) Reuse Or Extract The Installer Bundle
 
 If `/opt/orbina/internal_services` already exists on the Banka machine you are
-working on, you can keep using that extracted tree and continue with the
-canonical runtime runbook.
+working on, keep using that extracted tree and continue with the canonical
+runtime runbook.
 
 If it is missing, extract the current installer bundle:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-16-r22
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-16-r22 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r24 \
   /output
 ```
 
@@ -41,7 +41,7 @@ Use only those two runbooks for the live runtime path.
 
 ## 3) Separate References
 
-DNS, LB, HTTP/TLS, and optional dev cert placement:
+DNS, LB, prod TLS, and dev cert source paths:
 
 - `RUNBOOK_BANKA_DNS_TLS_CUTOVER_2026_04_09.md`
 
@@ -55,9 +55,10 @@ ZT ARF dev Ragflow export:
 
 ## 4) Working Rules
 
-- Keep Banka runtime HTTP-first.
+- Dev `108` now defaults to node-local TLS by copying `/tmp/cert.pem` and `/tmp/private.key` directly on `108` during install.
+- Prod `106/107` stays HTTP-first on the nodes.
 - For production, the intended final network shape is:
   - `HTTPS client -> LB -> HTTP :80 on 106/107`
+- The first active bootstrap now performs a one-time fresh reset for all non-Ragflow app state, then recreates the non-Ragflow databases and services from zero.
 - Do not add CSR generation back into the runtime install path.
-- Older Banka runbooks with overlapping install steps are superseded and kept
-  only for traceability.
+- Older Banka runbooks with overlapping install steps are superseded and kept only for traceability.

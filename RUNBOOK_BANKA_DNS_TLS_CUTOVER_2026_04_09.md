@@ -60,6 +60,14 @@ The main dev runtime path stays HTTP-first. If you later want node-local TLS on
 dev `108`, place the existing certificate and key on the admin host or company
 server that holds the extracted Banka installer tree, then set:
 
+Recommended source naming on the admin host:
+
+- certificate: `cert.pem`
+- private key: `private.key`
+
+The source filenames can technically be anything, but using those names keeps
+the operator flow simple and matches the final installed filenames on the node.
+
 ```text
 COPY_TLS=true
 LOCAL_CERT_PATH=/absolute/path/to/cert.pem
@@ -75,6 +83,12 @@ Installed paths on the node remain:
 
 - `/etc/pki/tls/certs/cert.pem`
 - `/etc/pki/tls/private/private.key`
+
+Production naming and placement:
+
+- do not copy the prod certificate or key to `106` or `107`
+- keep them only on the LB
+- use the filenames and import path format your LB expects
 
 CSR generation is intentionally out of the runtime flow and out of this
 reference path.

@@ -4,6 +4,12 @@ Date: 2026-04-16
 
 Use this for the live Banka production path only.
 
+Operator note:
+
+- these commands assume you already switched to the target machine and, when
+  needed, already became `root`
+- the runbook intentionally does not repeat `sudo su -`
+
 Scope:
 
 - `10.11.115.106` comes up first as the active node
@@ -41,9 +47,6 @@ Direct first-deploy access on `106`:
 Run on both `106` and `107`:
 
 ```bash
-sudo su -
-set -euo pipefail
-
 podman --version
 docker version
 docker compose version || docker-compose --version || podman compose version || podman-compose --version
@@ -68,7 +71,6 @@ Run on `10.11.115.106` only if `/opt/orbina/internal_services` is missing or
 you want the refreshed `r22` content:
 
 ```bash
-sudo su -
 mkdir -p /opt/orbina
 podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-16-r22
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
@@ -81,7 +83,6 @@ podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
 Run on `10.11.115.106`:
 
 ```bash
-sudo su -
 podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-16-r3
 read -rsp 'Config bundle passphrase: ' CONFIG_BUNDLE_PASSPHRASE; echo
 podman run --rm \
@@ -96,7 +97,6 @@ unset CONFIG_BUNDLE_PASSPHRASE
 Verify the rendered active inputs:
 
 ```bash
-sudo su -
 grep -E '^(NODE_ROLE|PRIMARY_HOST|PEER_HOST|PASSIVE_SSH_HOST|OPENWEBUI_PUBLIC_HOST|LITELLM_PUBLIC_HOST|LANGFUSE_PUBLIC_HOST|RAGFLOW_PUBLIC_HOST|OPENWEBUI_NGINX_CONFIG_PATH)=' \
   /opt/orbina/incoming/ha.vm1.env || true
 ```
@@ -117,8 +117,6 @@ If you already have a Ragflow export archive under `/tmp` on `106`, unpack it
 there directly:
 
 ```bash
-sudo su -
-set -euo pipefail
 RAGFLOW_ARCHIVE=/tmp/<your-ragflow-export>.tar.gz
 mkdir -p /opt/orbina/incoming
 rm -rf /opt/orbina/incoming/ragflow_volumes_export
@@ -140,7 +138,6 @@ Do not stage the Ragflow export on `107`.
 Run on `10.11.115.106`:
 
 ```bash
-sudo su -
 cd /opt/orbina/internal_services
 
 ops/install/katilim/install-node.sh \
@@ -161,7 +158,6 @@ The refreshed `r22` bundle already includes:
 Run on `10.11.115.107`:
 
 ```bash
-sudo su -
 mkdir -p /opt/orbina
 podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-16-r22
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
@@ -182,7 +178,6 @@ unset CONFIG_BUNDLE_PASSPHRASE
 Verify the rendered passive inputs:
 
 ```bash
-sudo su -
 grep -E '^(NODE_ROLE|PRIMARY_HOST|PEER_HOST|PASSIVE_SSH_HOST|OPENWEBUI_PUBLIC_HOST|LITELLM_PUBLIC_HOST|LANGFUSE_PUBLIC_HOST|RAGFLOW_PUBLIC_HOST|OPENWEBUI_NGINX_CONFIG_PATH)=' \
   /opt/orbina/incoming/ha.vm2.env || true
 ```
@@ -199,7 +194,6 @@ Expected:
 Run on `10.11.115.107`:
 
 ```bash
-sudo su -
 cd /opt/orbina/internal_services
 
 ops/install/katilim/install-node.sh \
@@ -214,7 +208,6 @@ ops/install/katilim/bootstrap-vm2-passive.sh
 Enable sync on `106`:
 
 ```bash
-sudo su -
 cd /opt/orbina/internal_services
 ops/install/katilim/enable-vm1-passive-sync.sh
 ```
@@ -222,7 +215,6 @@ ops/install/katilim/enable-vm1-passive-sync.sh
 Validate on `106`:
 
 ```bash
-sudo su -
 podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 systemctl status internal-services-ha-sync-light.timer --no-pager || true
 systemctl status internal-services-ha-sync-heavy.timer --no-pager || true
@@ -238,7 +230,6 @@ podman logs --tail=120 litellm || true
 Validate on `107`:
 
 ```bash
-sudo su -
 podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 curl -i http://127.0.0.1:18081/ready || true
 docker exec shared_postgres psql -U "${POSTGRES_USER:-postgres}" -d postgres -c "select pg_is_in_recovery();" || true

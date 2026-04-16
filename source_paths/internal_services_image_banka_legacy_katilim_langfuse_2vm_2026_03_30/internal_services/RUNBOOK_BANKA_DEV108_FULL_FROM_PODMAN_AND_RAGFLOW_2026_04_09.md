@@ -4,6 +4,12 @@ Date: 2026-04-16
 
 Use this for the live Banka dev `10.11.115.108` path only.
 
+Operator note:
+
+- these commands assume you already switched to the target machine and, when
+  needed, already became `root`
+- the runbook intentionally does not repeat `sudo su -`
+
 Scope:
 
 - single-node only
@@ -41,9 +47,6 @@ Direct first-deploy access:
 Run on `10.11.115.108`:
 
 ```bash
-sudo su -
-set -euo pipefail
-
 podman --version
 docker version
 docker compose version || docker-compose --version || podman compose version || podman-compose --version
@@ -62,7 +65,6 @@ Run on `10.11.115.108` only if `/opt/orbina/internal_services` is missing or
 you want the refreshed `r22` installer content:
 
 ```bash
-sudo su -
 mkdir -p /opt/orbina
 podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-16-r22
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
@@ -75,7 +77,6 @@ podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
 Run on `10.11.115.108`:
 
 ```bash
-sudo su -
 podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-16-r3
 read -rsp 'Config bundle passphrase: ' CONFIG_BUNDLE_PASSPHRASE; echo
 podman run --rm \
@@ -90,7 +91,6 @@ unset CONFIG_BUNDLE_PASSPHRASE
 Verify the rendered dev inputs:
 
 ```bash
-sudo su -
 grep -E '^(NODE_ROLE|PRIMARY_HOST|PEER_HOST|PASSIVE_SSH_HOST|OPENWEBUI_PUBLIC_HOST|LITELLM_PUBLIC_HOST|LANGFUSE_PUBLIC_HOST|RAGFLOW_PUBLIC_HOST|OPENWEBUI_NGINX_CONFIG_PATH)=' \
   /opt/orbina/incoming/ha.vm1.env || true
 ```
@@ -111,8 +111,6 @@ If you already have a Ragflow export archive under `/tmp`, unpack it directly on
 `108`:
 
 ```bash
-sudo su -
-set -euo pipefail
 RAGFLOW_ARCHIVE=/tmp/<your-ragflow-export>.tar.gz
 mkdir -p /opt/orbina/incoming
 rm -rf /opt/orbina/incoming/ragflow_volumes_export
@@ -132,7 +130,6 @@ If you still need to create the export from ZT ARF dev, use:
 Run on `10.11.115.108`:
 
 ```bash
-sudo su -
 cd /opt/orbina/internal_services
 
 ops/install/katilim/install-node.sh \
@@ -153,7 +150,6 @@ The refreshed `r22` bundle already includes:
 Run on `10.11.115.108`:
 
 ```bash
-sudo su -
 podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 systemctl --failed --no-pager || true
 curl -fsS http://127.0.0.1:18081/ready

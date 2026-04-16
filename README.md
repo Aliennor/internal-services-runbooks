@@ -2,6 +2,8 @@
 
 This repo is the visible runbook library for internal-services work.
 
+Remote: `https://github.com/Aliennor/internal-services-runbooks`
+
 Layout:
 
 - `source_paths/` preserves each runbook at its original project-relative path.

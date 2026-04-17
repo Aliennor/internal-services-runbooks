@@ -12,7 +12,7 @@ Operator note:
 Scope:
 
 - single-node only
-- dev stays HTTP-first on the node for first install
+- dev defaults to HTTPS on the nginx endpoints while keeping direct HTTP IP:port access exposed
 - no passive node
 - no LB in the runtime path
 - Podman may already be configured
@@ -21,8 +21,8 @@ Scope:
 
 Current images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r29`
-- dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r6`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r30`
+- dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r7`
 
 Current dev names:
 
@@ -41,13 +41,13 @@ Direct fallback access:
 - Ragflow: `http://10.11.115.108:8100`
 - Qdrant: disabled by default; ignore qdrant health unless explicitly enabled
 
-Expected DNS access when DNS is ready:
+Expected default HTTPS DNS access:
 
-- `http://zfgasistan-yzyonetim-dev.ziraat.bank`
-- `http://manavgat-yzyonetim-dev.ziraat.bank`
-- `http://aykal-yzyonetim-dev.ziraat.bank`
-- `http://mercek-yzyonetim-dev.ziraat.bank`
-- `http://mecra-yzyonetim-dev.ziraat.bank`
+- `https://zfgasistan-yzyonetim-dev.ziraat.bank`
+- `https://manavgat-yzyonetim-dev.ziraat.bank`
+- `https://aykal-yzyonetim-dev.ziraat.bank`
+- `https://mercek-yzyonetim-dev.ziraat.bank`
+- `https://mecra-yzyonetim-dev.ziraat.bank`
 
 ## 1) Reuse The Current Machine State
 
@@ -69,13 +69,13 @@ If Podman and compose already work, do not rerun the full Podman bootstrap.
 ## 2) Reuse Or Extract The Installer Bundle
 
 Run on `10.11.115.108` only if `/opt/orbina/internal_services` is missing or
-you want the refreshed `r29` installer content:
+you want the refreshed `r30` installer content:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r29
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r30
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r29 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r30 \
   /output
 ```
 
@@ -84,13 +84,13 @@ podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
 Run on `10.11.115.108`:
 
 ```bash
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r6
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r7
 read -rsp 'Config bundle passphrase: ' CONFIG_BUNDLE_PASSPHRASE; echo
 podman run --rm \
   -e CONFIG_BUNDLE_MODE=force \
   -e CONFIG_BUNDLE_PASSPHRASE="$CONFIG_BUNDLE_PASSPHRASE" \
   -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r6 \
+  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r7 \
   /output
 unset CONFIG_BUNDLE_PASSPHRASE
 ```
@@ -106,13 +106,15 @@ Expected:
 
 - `PRIMARY_HOST=10.11.115.108`
 - `PASSIVE_SSH_HOST=127.0.0.1`
-- `PUBLIC_URL_SCHEME=http`
+- `PUBLIC_URL_SCHEME=https`
 - `DIRECT_PUBLIC_BASE_SCHEME=http`
 - `DIRECT_PUBLIC_BASE_HOST=10.11.115.108`
-- `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.http-only.generated.conf`
+- `LITELLM_BROWSER_URL=https://manavgat-yzyonetim-dev.ziraat.bank`
+- `LANGFUSE_BROWSER_URL=https://mercek-yzyonetim-dev.ziraat.bank`
+- `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.generated.conf`
 - `RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP=true`
 - `PRE_CLEAN_INSTALL_ATTEMPT=true`
-- installer generates self-signed placeholder cert files under `/etc/pki/tls` if missing, only to satisfy compose mounts
+- installer copies `/tmp/cert.pem` and `/tmp/private.key` when present; otherwise it generates self-signed fallback cert files under `/etc/pki/tls`
 - qdrant is not part of the default health path
 
 ## 4) Reuse Or Stage The Ragflow Export
@@ -152,17 +154,17 @@ ops/install/katilim/install-node.sh \
 ops/install/katilim/bootstrap-vm1-active.sh
 ```
 
-The refreshed `r29` bundle now does all of this in the canonical path:
+The refreshed `r30` bundle now does all of this in the canonical path:
 
 - pre-cleans leftover containers and failed compose state from earlier tries
-- uses the Banka HTTP-only nginx config by default
+- uses the Banka full nginx config by default
 - performs a one-time destructive reset for all non-Ragflow app state
 - recreates non-Ragflow DBs and users from zero during startup
 - preserves and restores Ragflow data when the export is present
 - starts RAGFlow with the required `elasticsearch` and `cpu` Compose profiles before nginx/OpenWebUI
 - treats RAGFlow as mandatory but keeps readiness/smoke checks advisory by default; set `STRICT_INSTALL_HEALTH_CHECKS=true` only when you want failed health probes to stop the install
 - disables qdrant by default
-- writes direct browser URLs for LiteLLM and Langfuse so `http://10.11.115.108:4000` and `http://10.11.115.108:3000` stay usable before DNS is ready
+- writes HTTPS browser URLs for LiteLLM and Langfuse while keeping `http://10.11.115.108:4000` and `http://10.11.115.108:3000` available as direct fallback
 - includes the Redis/Langfuse bootstrap fix
 - includes the fixed LiteLLM `custom_auth.py` for UI/admin login
 
@@ -177,9 +179,11 @@ systemctl --failed --no-pager || true
 curl -fsS http://127.0.0.1:18081/ready
 curl -I http://127.0.0.1:4000/ || true
 curl -I http://127.0.0.1:3000/ || true
-curl -I --resolve zfgasistan-yzyonetim-dev.ziraat.bank:80:127.0.0.1 http://zfgasistan-yzyonetim-dev.ziraat.bank/
-curl -I --resolve manavgat-yzyonetim-dev.ziraat.bank:80:127.0.0.1 http://manavgat-yzyonetim-dev.ziraat.bank/
-curl -I --resolve mercek-yzyonetim-dev.ziraat.bank:80:127.0.0.1 http://mercek-yzyonetim-dev.ziraat.bank/
+podman exec nginx-proxy nginx -t
+podman exec nginx-proxy wget -qO- http://127.0.0.1:8081/health
+curl -kI --resolve zfgasistan-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://zfgasistan-yzyonetim-dev.ziraat.bank/
+curl -kI --resolve manavgat-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://manavgat-yzyonetim-dev.ziraat.bank/
+curl -kI --resolve mercek-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://mercek-yzyonetim-dev.ziraat.bank/
 curl -I http://127.0.0.1:5678/ || true
 curl -I http://127.0.0.1:8100/ || true
 podman ps --format '{{.Names}}' | grep -E '(^|-)ragflow-cpu(-|$)' || true
@@ -189,16 +193,17 @@ podman logs --tail=120 litellm || true
 Remote checks from your workstation or another server:
 
 ```bash
-curl -I http://zfgasistan-yzyonetim-dev.ziraat.bank/
-curl -I http://manavgat-yzyonetim-dev.ziraat.bank/
-curl -I http://mercek-yzyonetim-dev.ziraat.bank/
+curl -kI https://zfgasistan-yzyonetim-dev.ziraat.bank/
+curl -kI https://manavgat-yzyonetim-dev.ziraat.bank/
+curl -kI https://mercek-yzyonetim-dev.ziraat.bank/
 curl -I http://10.11.115.108:5678/
 curl -I http://10.11.115.108:8100/
 ```
 
 ## 7) Notes
 
-- Dev now defaults to HTTP/IP-first bring-up.
-- The direct IP:port URLs above are the primary bring-up path until DNS is confirmed.
+- Dev now defaults to HTTPS DNS/browser URLs and the full nginx config.
+- The direct IP:port URLs above remain available as the fallback bring-up path.
 - Direct IP and service ports remain useful for fallback and debugging.
+- `observability-cadvisor` may still restart on Podman with Docker/containerd discovery errors; that does not block `:18081/ready`.
 - The non-Ragflow fresh reset is one-shot; later reruns of the active bootstrap do not wipe again once the marker exists.

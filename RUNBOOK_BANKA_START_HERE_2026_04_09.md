@@ -7,9 +7,9 @@ dev `108` runbook and the Banka prod `106/107` runbook below.
 
 Current published images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r29`
-- dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r6`
-- prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r6`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r30`
+- dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r7`
+- prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r7`
 
 ## 1) Reuse Or Extract The Installer Bundle
 
@@ -21,9 +21,9 @@ If it is missing, extract the current installer bundle:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r29
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r30
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r29 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r30 \
   /output
 ```
 
@@ -55,14 +55,16 @@ ZT ARF dev Ragflow export:
 
 ## 4) Working Rules
 
-- Dev `108` and prod `106/107` stay HTTP-first on the nodes for first install.
-- Browser-facing LiteLLM and Langfuse defaults now use direct HTTP IP:port URLs so bring-up works before DNS is ready.
+- Dev `108` and prod `106/107` now default to HTTPS browser URLs and the full nginx config on the nodes.
+- Direct HTTP IP:port access remains exposed on dev `108` and prod `106/107` for fallback and debugging.
 - Qdrant is disabled by default; ignore qdrant health unless an operator explicitly enables it.
 - RAGFlow is mandatory in this Banka stack and starts with the `elasticsearch` and `cpu` Compose profiles.
 - Installer health checks are advisory by default: RAGFlow waits up to 60 seconds, HA `/ready` uses short curl timeouts, and smoke failures print warnings unless `STRICT_INSTALL_HEALTH_CHECKS=true`.
 - For production, the intended final network shape is:
   - `HTTPS client -> LB -> HTTP :80 on 106/107`
+- Dev should stage the real node cert at `/tmp/cert.pem` and `/tmp/private.key`; prod may keep using LB TLS with node-local self-signed fallback on `443`.
 - The first active bootstrap now performs a one-time fresh reset for all non-Ragflow app state, then recreates the non-Ragflow databases and services from zero.
 - `install-node.sh` and the bootstrap scripts now pre-clean old containers and failed compose leftovers before starting again. This cleanup keeps Ragflow export files and `/tmp` cert/key files.
+- `observability-cadvisor` may still complain about Docker/containerd discovery on Podman hosts; ignore that for Banka readiness unless you are explicitly debugging observability.
 - Do not add CSR generation back into the runtime install path.
 - Older Banka runbooks with overlapping install steps are superseded and kept only for traceability.

@@ -9,8 +9,9 @@ This runbook switches dev `108` from HTTP/IP-first bring-up to node-local HTTPS
 with the certificate files already staged under `/tmp`, and it switches
 LiteLLM/Langfuse public URLs back from direct IP ports to HTTPS DNS names.
 
-Do not use this for prod `106/107`. Prod should keep node runtime HTTP-first
-and terminate TLS on the load balancer.
+Do not use this for prod `106/107`. Prod keeps the normal public path on LB
+HTTPS -> node HTTP :80, while direct node IP:port access stays available
+separately.
 
 ## 1) Preconditions
 

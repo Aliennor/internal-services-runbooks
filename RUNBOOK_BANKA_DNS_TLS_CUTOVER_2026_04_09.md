@@ -31,7 +31,7 @@ all prod names to `10.11.115.106` and all dev names to `10.11.115.108`.
 
 ## 2) Production LB Model
 
-Keep the Banka nodes HTTP-first. The intended production network path is:
+Keep the Banka public production path on the LB. The intended production network path is:
 
 ```text
 client HTTPS -> LB -> active node HTTP :80
@@ -41,9 +41,9 @@ Production rules:
 
 - terminate TLS on the LB
 - forward plain HTTP from the LB to active nginx on port `80`
-- keep `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.http-only.generated.conf`
-- keep `PUBLIC_URL_SCHEME=http`
-- do not place the prod certificate and private key on `106` or `107` for the normal runtime path
+- keep `LOAD_BALANCER_IP` aligned with the real LB or VIP
+- default Banka browser URLs now stay on HTTPS hostnames even though the LB forwards HTTP to the nodes
+- do not place the prod certificate and private key on `106` or `107` for the normal runtime path unless you intentionally want node-local production certificates in addition to the LB path
 
 If the real LB or VIP IP changes, update only:
 
@@ -56,39 +56,34 @@ intentionally.
 
 ## 3) Dev Certificate Source Files
 
-The r29/r6 dev first-install path is HTTP/IP-first. To switch dev `108` to
-node-local HTTPS after first install is healthy, use:
-
-- `RUNBOOK_BANKA_DEV108_HTTPS_LITELLM_CUTOVER_2026_04_17.md`
-
-That cutover expects the target node to already have:
+The current dev default already expects the target node to have:
 
 ```text
 /tmp/cert.pem
 /tmp/private.key
 ```
 
-The r29/r6 first-install defaults before cutover are:
+The current dev defaults are:
 
 ```text
 COPY_TLS=false
 NODE_TLS_CERT_SOURCE_PATH=/tmp/cert.pem
 NODE_TLS_KEY_SOURCE_PATH=/tmp/private.key
 GENERATE_SELF_SIGNED_TLS=true
-PUBLIC_URL_SCHEME=http
+PUBLIC_URL_SCHEME=https
 DIRECT_PUBLIC_BASE_SCHEME=http
 DIRECT_PUBLIC_BASE_HOST=10.11.115.108
-OPENWEBUI_NGINX_CONFIG_PATH=./nginx.http-only.generated.conf
+LITELLM_BROWSER_URL=https://manavgat-yzyonetim-dev.ziraat.bank
+LANGFUSE_BROWSER_URL=https://mercek-yzyonetim-dev.ziraat.bank
+OPENWEBUI_NGINX_CONFIG_PATH=./nginx.generated.conf
 ```
 
-The HTTPS cutover installs `/tmp/cert.pem` and `/tmp/private.key` into
-`/etc/pki/tls`, switches nginx to `nginx.generated.conf`, and updates:
+If you are fixing an older HTTP-first dev install that predates these defaults,
+use:
 
-- LiteLLM `PROXY_BASE_URL=https://manavgat-yzyonetim-dev.ziraat.bank`
-- Langfuse `NEXTAUTH_URL=https://mercek-yzyonetim-dev.ziraat.bank`
+- `RUNBOOK_BANKA_DEV108_HTTPS_LITELLM_CUTOVER_2026_04_17.md`
 
-LiteLLM and Langfuse browser URLs default to direct HTTP on the node IP during
-bring-up, so unresolved DNS does not block login:
+Direct IP:port fallback remains available during bring-up:
 
 - LiteLLM: `http://10.11.115.108:4000`
 - Langfuse: `http://10.11.115.108:3000`
@@ -112,6 +107,7 @@ Dev node-local TLS:
 ```bash
 curl -kI https://zfgasistan-yzyonetim-dev.ziraat.bank/
 curl -kI https://manavgat-yzyonetim-dev.ziraat.bank/
+curl -kI https://mercek-yzyonetim-dev.ziraat.bank/
 ```
 
 HTTP fallback checks:

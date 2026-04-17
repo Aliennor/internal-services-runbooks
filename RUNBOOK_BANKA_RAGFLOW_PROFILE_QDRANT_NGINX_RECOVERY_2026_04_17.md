@@ -56,13 +56,14 @@ podman ps -a --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
 podman image inspect docker.io/aliennor/nginx:1.27-alpine --format '{{.Architecture}} {{.Os}}' || true
 podman logs --tail=120 nginx-proxy || true
 podman exec nginx-proxy nginx -t || true
-podman exec nginx-proxy wget -qO- http://127.0.0.1:8081/health || true
+podman exec nginx-proxy env -u http_proxy -u https_proxy -u HTTP_PROXY -u HTTPS_PROXY -u all_proxy -u ALL_PROXY NO_PROXY=127.0.0.1,localhost no_proxy=127.0.0.1,localhost wget -qO- http://127.0.0.1:8081/health || true
 ```
 
 Interpretation:
 
 - if `ragflow-cpu` is absent, continue with the RAGFlow recovery below
 - if `ragflow-cpu` exists but `nginx -t` fails, fix the rendered config or TLS mount problem first
+- if `nginx -t` passes but plain `wget http://127.0.0.1:8081/health` reports a loopback/proxy error, bypass proxy envs for the in-container loopback healthcheck
 - if `ragflow-cpu` exists and `nginx -t` passes but the container still restarts, repull/recreate nginx with the pinned `docker.io/aliennor/nginx:1.27-alpine` image
 
 ## 3) Apply Immediate RAGFlow Recovery When `ragflow-cpu` Is Missing
@@ -102,7 +103,7 @@ podman compose -f docker-compose.yml up -d
 podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 
 podman exec nginx-proxy nginx -t
-podman exec nginx-proxy wget -qO- http://127.0.0.1:8081/health
+podman exec nginx-proxy env -u http_proxy -u https_proxy -u HTTP_PROXY -u HTTPS_PROXY -u all_proxy -u ALL_PROXY NO_PROXY=127.0.0.1,localhost no_proxy=127.0.0.1,localhost wget -qO- http://127.0.0.1:8081/health
 
 curl -sS http://127.0.0.1:18081/status || true
 curl -i http://127.0.0.1:18081/ready || true
@@ -163,7 +164,7 @@ The corrected Banka HA/bootstrap source now does five things:
 - waits for `ragflow-cpu` and RAGFlow infra before starting `openweb-ui`/`nginx`
 - pins Banka nginx to `docker.io/aliennor/nginx:1.27-alpine` instead of the floating `aliennor/nginx:alpine` tag
 
-Use installer `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r30`
+Use installer `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r31`
 or newer for first installs.
 
 ## 7) Rollback

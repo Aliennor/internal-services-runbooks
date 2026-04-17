@@ -325,6 +325,19 @@ podman logs --tail=220 langfuse-web 2>&1 | grep -Ei 'ready|error|exception|trace
 podman inspect langfuse-web --format '{{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} started={{.State.StartedAt}} finished={{.State.FinishedAt}}' || true
 ```
 
+Observed evidence from `2026-04-17 18:54` run:
+
+- `manavgat-yzyonetim-dev.ziraat.bank` served `/` and `/openapi.json` as `200`; no direct `10.11.115.108:<port>` URL was found in the root HTML grep.
+- `mercek-yzyonetim-dev.ziraat.bank` returned `HTTP/2 502` through nginx.
+- Direct host checks to Langfuse failed with `curl: (7) Failed to connect to 127.0.0.1 port 3000: Connection refused` and same on `10.11.115.108:3000`.
+- `langfuse-web` container still reported `Up` and log line `Ready`, which means process-state alone is not enough; validate effective listener and upstream reachability.
+- `podman exec nginx-proxy wget ... host.containers.internal:3000` can be polluted by proxy environment and show `504 Unknown Host`; rerun with `--no-proxy` before concluding host routing is broken.
+
+Interpretation:
+
+- This is a `mercek`-specific backend path issue (`nginx -> host.containers.internal:3000`) and not a shared browser DNS/TLS failure.
+- If `manavgat` is `200` while `mercek` is `502`, classify the incident under Langfuse/port-3000 availability, not LiteLLM.
+
 ## Read The Result
 
 - Server `HTTP/2 200` and client failure: DNS, firewall, route, client proxy, or TLS inspection issue outside the local stack.

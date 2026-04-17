@@ -34,6 +34,12 @@ Currently published on the repo root:
 ## Quick Checks
 
 - [Banka dev108 browser connectivity](checks/CHECK_BANKA_DEV108_BROWSER_CONNECTIVITY_2026_04_17.md)
+- [Banka dev108 mercek langfuse 3000 recovery](checks/CHECK_BANKA_DEV108_MERCEK_LANGFUSE_3000_RECOVERY_2026_04_17.md)
+
+Checks publishing preference:
+
+- When a new command batch is requested, publish it as a new small timestamped file under `checks/`.
+- Do not append new command batches into an old check file; cross-link if needed.
 
 Layout:
 

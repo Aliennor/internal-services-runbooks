@@ -12,7 +12,7 @@ Operator note:
 Scope:
 
 - single-node only
-- dev defaults to node-local TLS
+- dev stays HTTP-first on the node for first install
 - no passive node
 - no LB in the runtime path
 - Podman may already be configured
@@ -21,8 +21,8 @@ Scope:
 
 Current images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25`
-- dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r5`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r26`
+- dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r6`
 
 Current dev names:
 
@@ -39,15 +39,15 @@ Direct fallback access:
 - n8n: `http://10.11.115.108:5678`
 - Langfuse: `http://10.11.115.108:3000`
 - Ragflow: `http://10.11.115.108:8100`
-- Qdrant: `http://10.11.115.108:6333`
+- Qdrant: disabled by default; ignore qdrant health unless explicitly enabled
 
-Expected DNS/TLS access when DNS is ready:
+Expected DNS access when DNS is ready:
 
-- `https://zfgasistan-yzyonetim-dev.ziraat.bank`
-- `https://manavgat-yzyonetim-dev.ziraat.bank`
-- `https://aykal-yzyonetim-dev.ziraat.bank`
-- `https://mercek-yzyonetim-dev.ziraat.bank`
-- `https://mecra-yzyonetim-dev.ziraat.bank`
+- `http://zfgasistan-yzyonetim-dev.ziraat.bank`
+- `http://manavgat-yzyonetim-dev.ziraat.bank`
+- `http://aykal-yzyonetim-dev.ziraat.bank`
+- `http://mercek-yzyonetim-dev.ziraat.bank`
+- `http://mecra-yzyonetim-dev.ziraat.bank`
 
 ## 1) Reuse The Current Machine State
 
@@ -69,36 +69,28 @@ If Podman and compose already work, do not rerun the full Podman bootstrap.
 ## 2) Reuse Or Extract The Installer Bundle
 
 Run on `10.11.115.108` only if `/opt/orbina/internal_services` is missing or
-you want the refreshed `r25` installer content:
+you want the refreshed `r26` installer content:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r26
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r26 \
   /output
 ```
 
 ## 3) Apply The Dev Encrypted Config
 
-Before running `install-node.sh` on `108`, make sure the certificate and key
-already exist on that node as:
-
-```text
-/tmp/cert.pem
-/tmp/private.key
-```
-
 Run on `10.11.115.108`:
 
 ```bash
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r5
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r6
 read -rsp 'Config bundle passphrase: ' CONFIG_BUNDLE_PASSPHRASE; echo
 podman run --rm \
   -e CONFIG_BUNDLE_MODE=force \
   -e CONFIG_BUNDLE_PASSPHRASE="$CONFIG_BUNDLE_PASSPHRASE" \
   -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r5 \
+  docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r6 \
   /output
 unset CONFIG_BUNDLE_PASSPHRASE
 ```
@@ -106,24 +98,22 @@ unset CONFIG_BUNDLE_PASSPHRASE
 Verify the rendered dev inputs:
 
 ```bash
-grep -E '^(NODE_ROLE|PRIMARY_HOST|PASSIVE_SSH_HOST|OPENWEBUI_PUBLIC_HOST|LITELLM_PUBLIC_HOST|LANGFUSE_PUBLIC_HOST|RAGFLOW_PUBLIC_HOST|PUBLIC_URL_SCHEME|DIRECT_PUBLIC_BASE_SCHEME|DIRECT_PUBLIC_BASE_HOST|LITELLM_BROWSER_URL|LANGFUSE_BROWSER_URL|OPENWEBUI_NGINX_CONFIG_PATH|NODE_TLS_CERT_SOURCE_PATH|NODE_TLS_KEY_SOURCE_PATH|RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP|PRE_CLEAN_INSTALL_ATTEMPT)=' \
+grep -E '^(NODE_ROLE|PRIMARY_HOST|PASSIVE_SSH_HOST|OPENWEBUI_PUBLIC_HOST|LITELLM_PUBLIC_HOST|LANGFUSE_PUBLIC_HOST|RAGFLOW_PUBLIC_HOST|PUBLIC_URL_SCHEME|DIRECT_PUBLIC_BASE_SCHEME|DIRECT_PUBLIC_BASE_HOST|LITELLM_BROWSER_URL|LANGFUSE_BROWSER_URL|OPENWEBUI_NGINX_CONFIG_PATH|RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP|PRE_CLEAN_INSTALL_ATTEMPT)=' \
   /opt/orbina/incoming/ha.vm1.env || true
-ls -l /tmp/cert.pem /tmp/private.key
 ```
 
 Expected:
 
 - `PRIMARY_HOST=10.11.115.108`
 - `PASSIVE_SSH_HOST=127.0.0.1`
-- `PUBLIC_URL_SCHEME=https`
+- `PUBLIC_URL_SCHEME=http`
 - `DIRECT_PUBLIC_BASE_SCHEME=http`
 - `DIRECT_PUBLIC_BASE_HOST=10.11.115.108`
-- `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.generated.conf`
+- `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.http-only.generated.conf`
 - `RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP=true`
 - `PRE_CLEAN_INSTALL_ATTEMPT=true`
-- `NODE_TLS_CERT_SOURCE_PATH=/tmp/cert.pem`
-- `NODE_TLS_KEY_SOURCE_PATH=/tmp/private.key`
-- cert/key files are present under `/tmp` on `108`
+- installer generates self-signed placeholder cert files under `/etc/pki/tls` if missing, only to satisfy compose mounts
+- qdrant is not part of the default health path
 
 ## 4) Reuse Or Stage The Ragflow Export
 
@@ -162,14 +152,15 @@ ops/install/katilim/install-node.sh \
 ops/install/katilim/bootstrap-vm1-active.sh
 ```
 
-The refreshed `r25` bundle now does all of this in the canonical path:
+The refreshed `r26` bundle now does all of this in the canonical path:
 
 - pre-cleans leftover containers and failed compose state from earlier tries
-- uses the Banka dev TLS nginx config by default
-- installs the dev certificate and key from `/tmp` on `108`
+- uses the Banka HTTP-only nginx config by default
 - performs a one-time destructive reset for all non-Ragflow app state
 - recreates non-Ragflow DBs and users from zero during startup
 - preserves and restores Ragflow data when the export is present
+- starts RAGFlow with the required `elasticsearch` and `cpu` Compose profiles before nginx/OpenWebUI
+- disables qdrant by default
 - writes direct browser URLs for LiteLLM and Langfuse so `http://10.11.115.108:4000` and `http://10.11.115.108:3000` stay usable before DNS is ready
 - includes the Redis/Langfuse bootstrap fix
 - includes the fixed LiteLLM `custom_auth.py` for UI/admin login
@@ -180,34 +171,33 @@ Run on `10.11.115.108`:
 
 ```bash
 test -f /var/lib/internal-services-ha/banka_non_ragflow_reset_complete
-test -f /etc/pki/tls/certs/cert.pem
-test -f /etc/pki/tls/private/private.key
 podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 systemctl --failed --no-pager || true
 curl -fsS http://127.0.0.1:18081/ready
 curl -I http://127.0.0.1:4000/ || true
 curl -I http://127.0.0.1:3000/ || true
-curl -kI --resolve zfgasistan-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://zfgasistan-yzyonetim-dev.ziraat.bank/
-curl -kI --resolve manavgat-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://manavgat-yzyonetim-dev.ziraat.bank/
-curl -kI --resolve mercek-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://mercek-yzyonetim-dev.ziraat.bank/
+curl -I --resolve zfgasistan-yzyonetim-dev.ziraat.bank:80:127.0.0.1 http://zfgasistan-yzyonetim-dev.ziraat.bank/
+curl -I --resolve manavgat-yzyonetim-dev.ziraat.bank:80:127.0.0.1 http://manavgat-yzyonetim-dev.ziraat.bank/
+curl -I --resolve mercek-yzyonetim-dev.ziraat.bank:80:127.0.0.1 http://mercek-yzyonetim-dev.ziraat.bank/
 curl -I http://127.0.0.1:5678/ || true
 curl -I http://127.0.0.1:8100/ || true
+podman ps --format '{{.Names}}' | grep -E '(^|-)ragflow-cpu(-|$)' || true
 podman logs --tail=120 litellm || true
 ```
 
 Remote checks from your workstation or another server:
 
 ```bash
-curl -kI https://zfgasistan-yzyonetim-dev.ziraat.bank/
-curl -kI https://manavgat-yzyonetim-dev.ziraat.bank/
-curl -kI https://mercek-yzyonetim-dev.ziraat.bank/
+curl -I http://zfgasistan-yzyonetim-dev.ziraat.bank/
+curl -I http://manavgat-yzyonetim-dev.ziraat.bank/
+curl -I http://mercek-yzyonetim-dev.ziraat.bank/
 curl -I http://10.11.115.108:5678/
 curl -I http://10.11.115.108:8100/
 ```
 
 ## 7) Notes
 
-- Dev now defaults to node-local TLS.
+- Dev now defaults to HTTP/IP-first bring-up.
 - The direct IP:port URLs above are the primary bring-up path until DNS is confirmed.
 - Direct IP and service ports remain useful for fallback and debugging.
 - The non-Ragflow fresh reset is one-shot; later reruns of the active bootstrap do not wipe again once the marker exists.

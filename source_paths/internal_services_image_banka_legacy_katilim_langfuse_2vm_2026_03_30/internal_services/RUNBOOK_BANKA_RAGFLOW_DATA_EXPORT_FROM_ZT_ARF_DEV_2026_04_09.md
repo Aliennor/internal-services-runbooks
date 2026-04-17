@@ -25,14 +25,13 @@ Why:
   `/opt/orbina/incoming/ragflow_volumes_export` if `volume-names.txt` exists
 - later `106 -> 107` HA sync carries:
   - Ragflow volumes: `esdata01`, `mysql_data`, `minio_data`, `redis_data`
-  - Qdrant volume: `qdrant_data`
+  - Qdrant is intentionally excluded unless an operator explicitly enables it
 
 Default export scope:
 - `esdata01`
 - `minio_data`
 - `mysql_data`
 - `redis_data`
-- `qdrant_data`
 
 This covers the core Ragflow state, including chunk/index/object-store data.
 
@@ -54,9 +53,9 @@ the script package locally:
 ```bash
 mkdir -p /opt/orbina-export-tools
 
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r26
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina-export-tools:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r26 \
   /output
 
 install -m 0755 \
@@ -69,7 +68,7 @@ install -m 0755 \
 On the ZT ARF dev server:
 
 ```bash
-docker volume ls --format '{{.Name}}' | sort | egrep 'esdata01|minio_data|mysql_data|redis_data|qdrant_data|ragflow'
+docker volume ls --format '{{.Name}}' | sort | egrep 'esdata01|minio_data|mysql_data|redis_data|ragflow'
 ```
 
 This shows the real Docker volume names that will be matched by the export.
@@ -88,7 +87,7 @@ cd /root
 TS=$(date +%Y%m%d_%H%M%S)
 EXPORT_DIR="/root/ragflow_volumes_export_${TS}"
 
-SELECTED_VOLUME_BASES=esdata01,minio_data,mysql_data,redis_data,qdrant_data \
+SELECTED_VOLUME_BASES=esdata01,minio_data,mysql_data,redis_data \
   /root/export-ragflow-volumes.sh "$EXPORT_DIR"
 ```
 
@@ -230,7 +229,7 @@ For the active/passive banka topology:
 
 The current HA volume sync manifest already covers:
 - Ragflow: `esdata01`, `mysql_data`, `minio_data`, `redis_data`
-- Qdrant: `qdrant_data`
+- Qdrant is disabled by default and not required for this Banka path
 
 That is why the passive node does not need a separate manual Ragflow volume
 upload.

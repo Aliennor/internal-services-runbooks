@@ -8,8 +8,8 @@ Use this after extracting the shared installer bundle.
 
 Current Banka encrypted config images:
 
-- dev `108`: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r5`
-- prod `106/107`: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r5`
+- dev `108`: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r6`
+- prod `106/107`: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r6`
 
 These images contain the live Banka `.env` set and rendered HA inputs in
 encrypted form. Use the dev image on `108`; use the prod image on `106/107`.
@@ -29,13 +29,10 @@ It writes these files under `/opt/orbina`:
 - `incoming/ha.vm1.env`
 - `incoming/ha.vm2.env`
 
-The dev `r5` image does not need to restore the certificate and key.
-For dev `108`, `install-node.sh` reads them directly from:
-
-- `/tmp/cert.pem`
-- `/tmp/private.key`
-
-on the target node.
+The `r6` images default to HTTP/IP-first bring-up and `ENABLE_QDRANT=false`.
+`install-node.sh` generates self-signed placeholder cert files under
+`/etc/pki/tls` if missing, only to satisfy compose mounts in the HTTP-first
+runtime.
 
 ## VM Commands
 
@@ -61,8 +58,8 @@ unset CONFIG_BUNDLE_PASSPHRASE
 Use `<TAG>` as:
 
 ```text
-banka-langfuse-dev108-2026-04-17-r5
-banka-langfuse-prod-2026-04-17-r5
+banka-langfuse-dev108-2026-04-17-r6
+banka-langfuse-prod-2026-04-17-r6
 ```
 
 ## Apply Order

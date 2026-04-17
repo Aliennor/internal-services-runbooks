@@ -7,9 +7,9 @@ dev `108` runbook and the Banka prod `106/107` runbook below.
 
 Current published images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25`
-- dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r5`
-- prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r5`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r26`
+- dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r6`
+- prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r6`
 
 ## 1) Reuse Or Extract The Installer Bundle
 
@@ -21,9 +21,9 @@ If it is missing, extract the current installer bundle:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r26
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r25 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r26 \
   /output
 ```
 
@@ -55,9 +55,10 @@ ZT ARF dev Ragflow export:
 
 ## 4) Working Rules
 
-- Dev `108` still copies `/tmp/cert.pem` and `/tmp/private.key` directly on `108` during install.
+- Dev `108` and prod `106/107` stay HTTP-first on the nodes for first install.
 - Browser-facing LiteLLM and Langfuse defaults now use direct HTTP IP:port URLs so bring-up works before DNS is ready.
-- Prod `106/107` stays HTTP-first on the nodes.
+- Qdrant is disabled by default; ignore qdrant health unless an operator explicitly enables it.
+- RAGFlow starts with its required Compose profiles and is waited on before nginx/OpenWebUI starts.
 - For production, the intended final network shape is:
   - `HTTPS client -> LB -> HTTP :80 on 106/107`
 - The first active bootstrap now performs a one-time fresh reset for all non-Ragflow app state, then recreates the non-Ragflow databases and services from zero.

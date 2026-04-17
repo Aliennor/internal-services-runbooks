@@ -135,7 +135,7 @@ The corrected Banka HA bootstrap source now does four things:
 - starts RAGFlow with `--profile "${DOC_ENGINE:-elasticsearch}" --profile "${DEVICE:-cpu}"`
 - waits for `ragflow-cpu` and RAGFlow infra before starting `openweb-ui`/`nginx`
 
-Use installer `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r26`
+Use installer `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r27`
 or newer for first installs.
 
 ## 6) Rollback

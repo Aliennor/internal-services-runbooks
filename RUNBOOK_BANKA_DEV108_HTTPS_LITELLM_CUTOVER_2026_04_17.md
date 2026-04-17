@@ -2,7 +2,7 @@
 
 Date: 2026-04-17
 
-Use this after the r26/r6 first install is already healthy on dev `108` with
+Use this after the r27/r6 first install is already healthy on dev `108` with
 direct HTTP/IP ports.
 
 This runbook switches dev `108` from HTTP/IP-first bring-up to node-local HTTPS

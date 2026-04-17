@@ -21,7 +21,7 @@ Scope:
 
 Current images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r26`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r27`
 - prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r6`
 
 Current prod names:
@@ -67,13 +67,13 @@ Before preparing `107`, complete:
 ## 3) Reuse Or Extract The Installer On 106
 
 Run on `10.11.115.106` only if `/opt/orbina/internal_services` is missing or
-you want the refreshed `r26` content:
+you want the refreshed `r27` content:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r26
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r27
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r26 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r27 \
   /output
 ```
 
@@ -151,7 +151,7 @@ ops/install/katilim/install-node.sh \
 ops/install/katilim/bootstrap-vm1-active.sh
 ```
 
-The refreshed `r26` bundle now does all of this in the canonical prod path:
+The refreshed `r27` bundle now does all of this in the canonical prod path:
 
 - pre-cleans leftover containers and failed compose state from earlier tries
 - keeps the node runtime HTTP-first
@@ -170,9 +170,9 @@ Run on `10.11.115.107`:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r26
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r27
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r26 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r27 \
   /output
 
 podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r6

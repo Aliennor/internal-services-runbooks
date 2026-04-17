@@ -33,7 +33,7 @@ Currently published on the repo root:
 
 ## Quick Checks
 
-- [Banka dev108 client timeout and langfuse 3000](checks/CHECK_BANKA_DEV108_CLIENT_TIMEOUT_AND_LANGFUSE_3000_2026_04_17.md)
+- [Banka dev108 mercek langfuse-web recreate](checks/CHECK_BANKA_DEV108_MERCEK_LANGFUSE_RECREATE_2026_04_17.md)
 
 Checks publishing preference:
 

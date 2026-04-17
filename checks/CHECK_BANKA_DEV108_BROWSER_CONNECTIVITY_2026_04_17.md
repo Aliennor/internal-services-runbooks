@@ -237,6 +237,94 @@ echo "== litellm recent status =="
 podman logs --since=30m litellm 2>&1 | grep -Ei 'ready|error|exception|traceback|listen|started|4000|pydantic|langfuse|timeout' || true
 ```
 
+## Follow-Up: Manavgat Browser Timeout After Initial 200
+
+Use this if Windows `10.2.101.18` gets `200` from `HEAD /`, but the browser
+shows `ERR_TIMED_OUT` after opening the page.
+
+Run on `10.11.115.108`:
+
+```bash
+set -u
+
+TS="$(date +%Y%m%d_%H%M%S)"
+OUT="/tmp/banka-dev108-manavgat-html-url-check-${TS}.log"
+exec > >(tee -a "$OUT") 2>&1
+
+echo "out=$OUT"
+echo "timestamp=$(date -Is)"
+
+curl --noproxy '*' --max-time 20 -k \
+  --resolve manavgat-yzyonetim-dev.ziraat.bank:443:127.0.0.1 \
+  -o /tmp/manavgat-root.html \
+  https://manavgat-yzyonetim-dev.ziraat.bank/ || true
+
+curl --noproxy '*' --max-time 30 -k \
+  --resolve manavgat-yzyonetim-dev.ziraat.bank:443:127.0.0.1 \
+  -o /tmp/manavgat-openapi.json \
+  https://manavgat-yzyonetim-dev.ziraat.bank/openapi.json || true
+
+echo "== absolute or direct URLs in root html =="
+grep -En 'https?://|10\\.11\\.115\\.108|:4000|:3000|:8080|:8100' /tmp/manavgat-root.html || true
+
+echo "== absolute or direct URLs in openapi =="
+grep -En 'https?://|10\\.11\\.115\\.108|:4000|:3000|:8080|:8100' /tmp/manavgat-openapi.json | head -80 || true
+
+echo "== nginx accesses from Windows client =="
+podman logs --since=20m nginx-proxy 2>&1 | grep '10.2.101.18' || true
+```
+
+Run on Windows terminal server `10.2.101.18`:
+
+```powershell
+$ts = Get-Date -Format "yyyyMMdd_HHmmss"
+$out = "$env:TEMP\banka-dev108-manavgat-full-get-$ts.txt"
+Start-Transcript -Path $out
+
+curl.exe -vkL --max-time 30 -o "$env:TEMP\manavgat-root.html" "https://manavgat-yzyonetim-dev.ziraat.bank/"
+curl.exe -vkL --max-time 60 -o "$env:TEMP\manavgat-openapi.json" "https://manavgat-yzyonetim-dev.ziraat.bank/openapi.json"
+curl.exe -vkL --max-time 60 -o "$env:TEMP\manavgat-swagger-ui-bundle.js" "https://manavgat-yzyonetim-dev.ziraat.bank/swagger/swagger-ui-bundle.js"
+
+Select-String -Path "$env:TEMP\manavgat-root.html" -Pattern "http://","https://","10.11.115.108",":4000",":3000",":8080",":8100"
+Select-String -Path "$env:TEMP\manavgat-openapi.json" -Pattern "http://","https://","10.11.115.108",":4000",":3000",":8080",":8100" | Select-Object -First 80
+
+Stop-Transcript
+Write-Host "out=$out"
+```
+
+## Follow-Up: Mercek 502 / Langfuse Port 3000
+
+Use this when `mercek-yzyonetim-dev.ziraat.bank` returns `502` while other
+browser hosts return `200`.
+
+Run on `10.11.115.108`:
+
+```bash
+set -u
+
+TS="$(date +%Y%m%d_%H%M%S)"
+OUT="/tmp/banka-dev108-mercek-langfuse-502-${TS}.log"
+exec > >(tee -a "$OUT") 2>&1
+
+echo "out=$OUT"
+echo "timestamp=$(date -Is)"
+
+echo "== mercek through nginx =="
+curl --noproxy '*' --max-time 12 -kI \
+  --resolve mercek-yzyonetim-dev.ziraat.bank:443:127.0.0.1 \
+  https://mercek-yzyonetim-dev.ziraat.bank/ || true
+
+echo "== langfuse direct ports =="
+curl --noproxy '*' --max-time 12 -I http://127.0.0.1:3000/ || true
+curl --noproxy '*' --max-time 12 -I http://10.11.115.108:3000/ || true
+podman exec nginx-proxy wget -S -O- http://host.containers.internal:3000/ >/dev/null || true
+
+echo "== langfuse process and logs =="
+podman ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E 'langfuse|NAMES' || true
+podman logs --tail=220 langfuse-web 2>&1 | grep -Ei 'ready|error|exception|traceback|listen|started|3000|next|clickhouse|migration|shutting|exited' || true
+podman inspect langfuse-web --format '{{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} started={{.State.StartedAt}} finished={{.State.FinishedAt}}' || true
+```
+
 ## Read The Result
 
 - Server `HTTP/2 200` and client failure: DNS, firewall, route, client proxy, or TLS inspection issue outside the local stack.
@@ -247,3 +335,5 @@ podman logs --since=30m litellm 2>&1 | grep -Ei 'ready|error|exception|traceback
 - Repeated long `urt`/`uht` timings or LiteLLM tracebacks while `/openapi.json` is loading point to LiteLLM backend response generation, not DNS.
 - If all browser hostnames fail from the client but server-local HTTPS is `200`, focus on client network/proxy/TLS inspection.
 - If only `mercek` is `502` while other hostnames are `200`, focus on Langfuse on port `3000`.
+- If Windows full GETs to manavgat succeed but browser still times out, inspect the browser devtools Network tab for a request that is not going through `https://manavgat-yzyonetim-dev.ziraat.bank/`.
+- If `/tmp/manavgat-root.html` or `/tmp/manavgat-openapi.json` contains direct `10.11.115.108:<port>` URLs, fix the app public/base URL so browser assets stay on the hostname over 443.

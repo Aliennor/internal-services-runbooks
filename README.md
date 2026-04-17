@@ -33,9 +33,7 @@ Currently published on the repo root:
 
 ## Quick Checks
 
-- [Banka dev108 browser connectivity](checks/CHECK_BANKA_DEV108_BROWSER_CONNECTIVITY_2026_04_17.md)
-- [Banka dev108 mercek langfuse 3000 recovery](checks/CHECK_BANKA_DEV108_MERCEK_LANGFUSE_3000_RECOVERY_2026_04_17.md)
-- [Banka dev108 mercek 502 compose path and proxy](checks/CHECK_BANKA_DEV108_MERCEK_502_COMPOSE_PATH_AND_PROXY_2026_04_17.md)
+- [Banka dev108 client timeout and langfuse 3000](checks/CHECK_BANKA_DEV108_CLIENT_TIMEOUT_AND_LANGFUSE_3000_2026_04_17.md)
 
 Checks publishing preference:
 

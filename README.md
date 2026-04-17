@@ -31,6 +31,10 @@ Currently published on the repo root:
 
 <!-- CURRENT_RUNBOOKS_END -->
 
+## Quick Checks
+
+- [Banka dev108 browser connectivity](checks/CHECK_BANKA_DEV108_BROWSER_CONNECTIVITY_2026_04_17.md)
+
 Layout:
 
 - `source_paths/` preserves each runbook at its original project-relative path.

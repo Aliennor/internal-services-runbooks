@@ -56,29 +56,36 @@ intentionally.
 
 ## 3) Dev Certificate Source Files
 
-The main dev runtime path now expects the build machine to already have:
+The r26/r6 dev first-install path is HTTP/IP-first. To switch dev `108` to
+node-local HTTPS after first install is healthy, use:
+
+- `RUNBOOK_BANKA_DEV108_HTTPS_LITELLM_CUTOVER_2026_04_17.md`
+
+That cutover expects the target node to already have:
 
 ```text
 /tmp/cert.pem
 /tmp/private.key
 ```
 
-The Banka dev install defaults are:
+The r26/r6 first-install defaults before cutover are:
 
 ```text
 COPY_TLS=false
 NODE_TLS_CERT_SOURCE_PATH=/tmp/cert.pem
 NODE_TLS_KEY_SOURCE_PATH=/tmp/private.key
-GENERATE_SELF_SIGNED_TLS=false
-PUBLIC_URL_SCHEME=https
+GENERATE_SELF_SIGNED_TLS=true
+PUBLIC_URL_SCHEME=http
 DIRECT_PUBLIC_BASE_SCHEME=http
 DIRECT_PUBLIC_BASE_HOST=10.11.115.108
-OPENWEBUI_NGINX_CONFIG_PATH=./nginx.generated.conf
+OPENWEBUI_NGINX_CONFIG_PATH=./nginx.http-only.generated.conf
 ```
 
-So you do not need to hand-edit an inventory or rebuild the dev config image
-just to include the certificate and key. The installer on `108` copies them
-from `/tmp` directly during `install-node.sh`.
+The HTTPS cutover installs `/tmp/cert.pem` and `/tmp/private.key` into
+`/etc/pki/tls`, switches nginx to `nginx.generated.conf`, and updates:
+
+- LiteLLM `PROXY_BASE_URL=https://manavgat-yzyonetim-dev.ziraat.bank`
+- Langfuse `NEXTAUTH_URL=https://mercek-yzyonetim-dev.ziraat.bank`
 
 LiteLLM and Langfuse browser URLs default to direct HTTP on the node IP during
 bring-up, so unresolved DNS does not block login:

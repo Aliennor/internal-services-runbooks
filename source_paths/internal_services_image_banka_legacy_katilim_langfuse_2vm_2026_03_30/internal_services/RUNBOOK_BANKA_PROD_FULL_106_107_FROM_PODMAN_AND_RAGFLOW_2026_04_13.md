@@ -21,7 +21,7 @@ Scope:
 
 Current images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r31`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32`
 - prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r7`
 
 Current prod names:
@@ -67,13 +67,13 @@ Before preparing `107`, complete:
 ## 3) Reuse Or Extract The Installer On 106
 
 Run on `10.11.115.106` only if `/opt/orbina/internal_services` is missing or
-you want the refreshed `r31` content:
+you want the refreshed `r32` content:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r31
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r31 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32 \
   /output
 ```
 
@@ -110,7 +110,7 @@ Expected:
 - `LITELLM_BROWSER_URL=https://manavgat-yzyonetim.ziraat.bank`
 - `LANGFUSE_BROWSER_URL=https://mercek-yzyonetim.ziraat.bank`
 - `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.generated.conf`
-- `RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP=true`
+- `RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP=true` (legacy variable name; active bootstrap now resets non-Ragflow state on every run)
 - `PRE_CLEAN_INSTALL_ATTEMPT=true`
 - no real prod node TLS cert or key is required under `/opt/orbina/incoming/`; the LB remains the normal public TLS endpoint and the installer generates self-signed fallback cert files under `/etc/pki/tls` if the node does not already have its own certs
 
@@ -153,11 +153,11 @@ ops/install/katilim/install-node.sh \
 ops/install/katilim/bootstrap-vm1-active.sh
 ```
 
-The refreshed `r31` bundle now does all of this in the canonical prod path:
+The refreshed `r32` bundle now does all of this in the canonical prod path:
 
 - pre-cleans leftover containers and failed compose state from earlier tries
 - keeps direct node HTTP IP:port access exposed while default browser URLs move to HTTPS
-- performs a one-time destructive reset for all non-Ragflow app state on `106`
+- performs a destructive reset for all non-Ragflow app state on every active bootstrap on `106`
 - recreates non-Ragflow DBs and users from zero during startup
 - preserves and restores Ragflow data when the export is present on `106`
 - starts RAGFlow with the required `elasticsearch` and `cpu` Compose profiles before nginx/OpenWebUI
@@ -173,9 +173,9 @@ Run on `10.11.115.107`:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r31
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r31 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32 \
   /output
 
 podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r7
@@ -207,7 +207,7 @@ Expected:
 - `LITELLM_BROWSER_URL=https://manavgat-yzyonetim.ziraat.bank`
 - `LANGFUSE_BROWSER_URL=https://mercek-yzyonetim.ziraat.bank`
 - `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.generated.conf`
-- `RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP=true`
+- `RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP=true` (legacy variable name; active bootstrap now resets non-Ragflow state on every run)
 - `PRE_CLEAN_INSTALL_ATTEMPT=true`
 
 ## 8) Install And Bootstrap 107 As Passive
@@ -239,13 +239,12 @@ ops/install/katilim/enable-vm1-passive-sync.sh
 Validate on `106`:
 
 ```bash
-test -f /var/lib/internal-services-ha/banka_non_ragflow_reset_complete
 podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 systemctl status internal-services-ha-sync-light.timer --no-pager || true
 systemctl status internal-services-ha-sync-heavy.timer --no-pager || true
 curl -fsS http://127.0.0.1:18081/ready
 podman exec nginx-proxy nginx -t
-podman exec nginx-proxy wget -qO- http://127.0.0.1:8081/health
+podman exec nginx-proxy env -u http_proxy -u https_proxy -u HTTP_PROXY -u HTTPS_PROXY -u all_proxy -u ALL_PROXY NO_PROXY=127.0.0.1,localhost no_proxy=127.0.0.1,localhost wget -qO- http://127.0.0.1:8081/health
 curl -I http://127.0.0.1:8080/ || true
 curl -I http://127.0.0.1:4000/ || true
 curl -I http://127.0.0.1:3000/ || true

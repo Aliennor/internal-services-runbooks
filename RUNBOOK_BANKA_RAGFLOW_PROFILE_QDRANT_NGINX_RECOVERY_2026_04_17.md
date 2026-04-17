@@ -164,7 +164,7 @@ The corrected Banka HA/bootstrap source now does five things:
 - waits for `ragflow-cpu` and RAGFlow infra before starting `openweb-ui`/`nginx`
 - pins Banka nginx to `docker.io/aliennor/nginx:1.27-alpine` instead of the floating `aliennor/nginx:alpine` tag
 
-Use installer `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r31`
+Use installer `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32`
 or newer for first installs.
 
 ## 7) Rollback

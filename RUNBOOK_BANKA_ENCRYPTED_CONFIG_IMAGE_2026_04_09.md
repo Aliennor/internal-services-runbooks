@@ -75,4 +75,4 @@ Use this order on a target VM:
 - `106` is the only target that should be seeded before the first production bootstrap.
 - `107` gets the encrypted config too, but not the Ragflow volume export.
 - `108` uses the same encrypted config image flow before the dev bootstrap.
-- The first active bootstrap now performs a one-time fresh reset for all non-Ragflow app state.
+- Every active bootstrap now performs a fresh reset for all non-Ragflow app state.

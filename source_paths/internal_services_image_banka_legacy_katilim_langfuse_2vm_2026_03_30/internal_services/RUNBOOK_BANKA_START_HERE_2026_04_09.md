@@ -7,7 +7,7 @@ dev `108` runbook and the Banka prod `106/107` runbook below.
 
 Current published images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r31`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32`
 - dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r7`
 - prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r7`
 
@@ -21,9 +21,9 @@ If it is missing, extract the current installer bundle:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r31
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r31 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32 \
   /output
 ```
 
@@ -63,8 +63,9 @@ ZT ARF dev Ragflow export:
 - For production, the intended final network shape is:
   - `HTTPS client -> LB -> HTTP :80 on 106/107`
 - Dev should stage the real node cert at `/tmp/cert.pem` and `/tmp/private.key`; prod may keep using LB TLS with node-local self-signed fallback on `443`.
-- The first active bootstrap now performs a one-time fresh reset for all non-Ragflow app state, then recreates the non-Ragflow databases and services from zero.
+- Every active bootstrap now performs a fresh reset for all non-Ragflow app state, then recreates the non-Ragflow databases and services from zero.
 - `install-node.sh` and the bootstrap scripts now pre-clean old containers and failed compose leftovers before starting again. This cleanup keeps Ragflow export files and `/tmp` cert/key files.
+- The active bootstrap also recreates `nginx-proxy` near the end so hostname upstreams resolve to the final container IPs after LiteLLM/Langfuse/N8N settle.
 - `observability-cadvisor` may still complain about Docker/containerd discovery on Podman hosts; ignore that for Banka readiness unless you are explicitly debugging observability.
 - Do not add CSR generation back into the runtime install path.
 - Older Banka runbooks with overlapping install steps are superseded and kept only for traceability.

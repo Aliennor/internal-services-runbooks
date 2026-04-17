@@ -21,7 +21,7 @@ Scope:
 
 Current images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r31`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32`
 - dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r7`
 
 Current dev names:
@@ -69,13 +69,13 @@ If Podman and compose already work, do not rerun the full Podman bootstrap.
 ## 2) Reuse Or Extract The Installer Bundle
 
 Run on `10.11.115.108` only if `/opt/orbina/internal_services` is missing or
-you want the refreshed `r31` installer content:
+you want the refreshed `r32` installer content:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r31
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r31 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32 \
   /output
 ```
 
@@ -112,7 +112,7 @@ Expected:
 - `LITELLM_BROWSER_URL=https://manavgat-yzyonetim-dev.ziraat.bank`
 - `LANGFUSE_BROWSER_URL=https://mercek-yzyonetim-dev.ziraat.bank`
 - `OPENWEBUI_NGINX_CONFIG_PATH=./nginx.generated.conf`
-- `RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP=true`
+- `RESET_NON_RAGFLOW_ON_FIRST_ACTIVE_BOOTSTRAP=true` (legacy variable name; active bootstrap now resets non-Ragflow state on every run)
 - `PRE_CLEAN_INSTALL_ATTEMPT=true`
 - installer copies `/tmp/cert.pem` and `/tmp/private.key` when present; otherwise it generates self-signed fallback cert files under `/etc/pki/tls`
 - qdrant is not part of the default health path
@@ -154,11 +154,11 @@ ops/install/katilim/install-node.sh \
 ops/install/katilim/bootstrap-vm1-active.sh
 ```
 
-The refreshed `r31` bundle now does all of this in the canonical path:
+The refreshed `r32` bundle now does all of this in the canonical path:
 
 - pre-cleans leftover containers and failed compose state from earlier tries
 - uses the Banka full nginx config by default
-- performs a one-time destructive reset for all non-Ragflow app state
+- performs a destructive reset for all non-Ragflow app state on every active bootstrap
 - recreates non-Ragflow DBs and users from zero during startup
 - preserves and restores Ragflow data when the export is present
 - starts RAGFlow with the required `elasticsearch` and `cpu` Compose profiles before nginx/OpenWebUI
@@ -173,14 +173,13 @@ The refreshed `r31` bundle now does all of this in the canonical path:
 Run on `10.11.115.108`:
 
 ```bash
-test -f /var/lib/internal-services-ha/banka_non_ragflow_reset_complete
 podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 systemctl --failed --no-pager || true
 curl -fsS http://127.0.0.1:18081/ready
 curl -I http://127.0.0.1:4000/ || true
 curl -I http://127.0.0.1:3000/ || true
 podman exec nginx-proxy nginx -t
-podman exec nginx-proxy wget -qO- http://127.0.0.1:8081/health
+podman exec nginx-proxy env -u http_proxy -u https_proxy -u HTTP_PROXY -u HTTPS_PROXY -u all_proxy -u ALL_PROXY NO_PROXY=127.0.0.1,localhost no_proxy=127.0.0.1,localhost wget -qO- http://127.0.0.1:8081/health
 curl -kI --resolve zfgasistan-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://zfgasistan-yzyonetim-dev.ziraat.bank/
 curl -kI --resolve manavgat-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://manavgat-yzyonetim-dev.ziraat.bank/
 curl -kI --resolve mercek-yzyonetim-dev.ziraat.bank:443:127.0.0.1 https://mercek-yzyonetim-dev.ziraat.bank/
@@ -206,4 +205,4 @@ curl -I http://10.11.115.108:8100/
 - The direct IP:port URLs above remain available as the fallback bring-up path.
 - Direct IP and service ports remain useful for fallback and debugging.
 - `observability-cadvisor` may still restart on Podman with Docker/containerd discovery errors; that does not block `:18081/ready`.
-- The non-Ragflow fresh reset is one-shot; later reruns of the active bootstrap do not wipe again once the marker exists.
+- The non-Ragflow fresh reset now runs on every active bootstrap so LiteLLM/Langfuse/N8N/OpenWebUI credentials and databases are rebuilt from the delivered config each time.

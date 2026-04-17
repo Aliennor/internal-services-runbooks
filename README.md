@@ -33,7 +33,7 @@ Currently published on the repo root:
 
 ## Quick Checks
 
-- [Banka dev108 browser ERR_TIMED_OUT classify](checks/CHECK_BANKA_DEV108_BROWSER_TIMEOUT_CLASSIFY_2026_04_17.md)
+- [Banka dev108 browser proxy exception fix](checks/CHECK_BANKA_DEV108_BROWSER_PROXY_EXCEPTION_FIX_2026_04_17.md)
 
 Checks publishing preference:
 

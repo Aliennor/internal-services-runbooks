@@ -20,13 +20,15 @@ There are two common failure classes here:
   `ragflow/docker/docker-compose.yml` without profiles can start infra
   containers but skip `ragflow-cpu`.
 - nginx itself can still fail after `ragflow-cpu` exists if the node is using
-  a bad nginx image/tag, a broken rendered config, or missing/bad TLS mounts.
+  a bad nginx image/tag, a broken rendered config, missing/bad TLS mounts, or
+  stale/unreachable Podman bridge upstreams.
 
-The nginx proxy config has an upstream to `ragflow-cpu`. If `nginx-proxy`
-starts before `ragflow-cpu` exists on the shared network, nginx can stay in a
-starting/restart state. That blocks the HA gate because `:18081/ready` requires
-core services plus nginx internal health. If `ragflow-cpu` is already present,
-switch to nginx-specific diagnostics before restarting more services.
+Current Banka bundles use host-published direct app ports as nginx upstreams.
+Older rendered configs used container names such as `langfuse-web:3000` and
+`ragflow-cpu:80`; on Podman these can drift or resolve to bridge addresses that
+refuse traffic even while the same service works through `127.0.0.1:<port>`.
+If `ragflow-cpu` is already present, switch to nginx-specific diagnostics before
+restarting more services.
 
 Qdrant is not required for the current Banka runtime path, so it should not be
 used as a health blocker.
@@ -57,6 +59,8 @@ podman image inspect docker.io/aliennor/nginx:1.27-alpine --format '{{.Architect
 podman logs --tail=120 nginx-proxy || true
 podman exec nginx-proxy nginx -t || true
 podman exec nginx-proxy env -u http_proxy -u https_proxy -u HTTP_PROXY -u HTTPS_PROXY -u all_proxy -u ALL_PROXY NO_PROXY=127.0.0.1,localhost no_proxy=127.0.0.1,localhost wget -qO- http://127.0.0.1:8081/health || true
+podman exec nginx-proxy getent hosts host.containers.internal || true
+podman exec nginx-proxy wget -S -qO- http://host.containers.internal:3000/ >/dev/null || true
 ```
 
 Interpretation:
@@ -64,6 +68,7 @@ Interpretation:
 - if `ragflow-cpu` is absent, continue with the RAGFlow recovery below
 - if `ragflow-cpu` exists but `nginx -t` fails, fix the rendered config or TLS mount problem first
 - if `nginx -t` passes but plain `wget http://127.0.0.1:8081/health` reports a loopback/proxy error, bypass proxy envs for the in-container loopback healthcheck
+- if direct `127.0.0.1:<app-port>` works but nginx gets `502` to a `10.89.x.x` upstream, extract installer `r33` or newer so nginx proxies to `host.containers.internal:<direct-port>`
 - if `ragflow-cpu` exists and `nginx -t` passes but the container still restarts, repull/recreate nginx with the pinned `docker.io/aliennor/nginx:1.27-alpine` image
 
 ## 3) Apply Immediate RAGFlow Recovery When `ragflow-cpu` Is Missing
@@ -162,9 +167,11 @@ The corrected Banka HA/bootstrap source now does five things:
 - creates `internal_services_network` before RAGFlow/OpenWebUI compose operations
 - starts RAGFlow with `--profile "${DOC_ENGINE:-elasticsearch}" --profile "${DEVICE:-cpu}"`
 - waits for `ragflow-cpu` and RAGFlow infra before starting `openweb-ui`/`nginx`
+- waits for direct app ports before the final nginx refresh
+- uses host-published direct app ports as nginx upstreams to avoid Podman bridge DNS/IP drift
 - pins Banka nginx to `docker.io/aliennor/nginx:1.27-alpine` instead of the floating `aliennor/nginx:alpine` tag
 
-Use installer `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32`
+Use installer `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r33`
 or newer for first installs.
 
 ## 7) Rollback

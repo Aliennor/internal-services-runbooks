@@ -21,7 +21,7 @@ Scope:
 
 Current images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r33`
 - prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r7`
 
 Current prod names:
@@ -67,13 +67,13 @@ Before preparing `107`, complete:
 ## 3) Reuse Or Extract The Installer On 106
 
 Run on `10.11.115.106` only if `/opt/orbina/internal_services` is missing or
-you want the refreshed `r32` content:
+you want the refreshed `r33` content:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r33
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r33 \
   /output
 ```
 
@@ -153,7 +153,7 @@ ops/install/katilim/install-node.sh \
 ops/install/katilim/bootstrap-vm1-active.sh
 ```
 
-The refreshed `r32` bundle now does all of this in the canonical prod path:
+The refreshed `r33` bundle now does all of this in the canonical prod path:
 
 - pre-cleans leftover containers and failed compose state from earlier tries
 - keeps direct node HTTP IP:port access exposed while default browser URLs move to HTTPS
@@ -161,6 +161,7 @@ The refreshed `r32` bundle now does all of this in the canonical prod path:
 - recreates non-Ragflow DBs and users from zero during startup
 - preserves and restores Ragflow data when the export is present on `106`
 - starts RAGFlow with the required `elasticsearch` and `cpu` Compose profiles before nginx/OpenWebUI
+- waits for the direct app ports, then recreates nginx with host-published upstreams so Podman bridge DNS/IP drift cannot leave stale `502` routes
 - treats RAGFlow as mandatory but keeps readiness/smoke checks advisory by default; set `STRICT_INSTALL_HEALTH_CHECKS=true` only when you want failed health probes to stop the install
 - disables qdrant by default
 - writes HTTPS browser URLs for LiteLLM and Langfuse while keeping `http://10.11.115.106:4000` and `http://10.11.115.106:3000` available as direct fallback on the node
@@ -173,9 +174,9 @@ Run on `10.11.115.107`:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r33
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r32 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r33 \
   /output
 
 podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r7

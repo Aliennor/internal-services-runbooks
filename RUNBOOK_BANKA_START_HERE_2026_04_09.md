@@ -7,7 +7,7 @@ dev `108` runbook and the Banka prod `106/107` runbook below.
 
 Current published images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r27`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r29`
 - dev encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r6`
 - prod encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r6`
 
@@ -21,9 +21,9 @@ If it is missing, extract the current installer bundle:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r27
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r29
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r27 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r29 \
   /output
 ```
 
@@ -58,7 +58,8 @@ ZT ARF dev Ragflow export:
 - Dev `108` and prod `106/107` stay HTTP-first on the nodes for first install.
 - Browser-facing LiteLLM and Langfuse defaults now use direct HTTP IP:port URLs so bring-up works before DNS is ready.
 - Qdrant is disabled by default; ignore qdrant health unless an operator explicitly enables it.
-- RAGFlow starts with its required Compose profiles and is waited on before nginx/OpenWebUI starts.
+- RAGFlow is mandatory in this Banka stack and starts with the `elasticsearch` and `cpu` Compose profiles.
+- Installer health checks are advisory by default: RAGFlow waits up to 60 seconds, HA `/ready` uses short curl timeouts, and smoke failures print warnings unless `STRICT_INSTALL_HEALTH_CHECKS=true`.
 - For production, the intended final network shape is:
   - `HTTPS client -> LB -> HTTP :80 on 106/107`
 - The first active bootstrap now performs a one-time fresh reset for all non-Ragflow app state, then recreates the non-Ragflow databases and services from zero.

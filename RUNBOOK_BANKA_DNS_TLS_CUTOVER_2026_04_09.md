@@ -56,7 +56,7 @@ intentionally.
 
 ## 3) Dev Certificate Source Files
 
-The r27/r6 dev first-install path is HTTP/IP-first. To switch dev `108` to
+The r29/r6 dev first-install path is HTTP/IP-first. To switch dev `108` to
 node-local HTTPS after first install is healthy, use:
 
 - `RUNBOOK_BANKA_DEV108_HTTPS_LITELLM_CUTOVER_2026_04_17.md`
@@ -68,7 +68,7 @@ That cutover expects the target node to already have:
 /tmp/private.key
 ```
 
-The r27/r6 first-install defaults before cutover are:
+The r29/r6 first-install defaults before cutover are:
 
 ```text
 COPY_TLS=false

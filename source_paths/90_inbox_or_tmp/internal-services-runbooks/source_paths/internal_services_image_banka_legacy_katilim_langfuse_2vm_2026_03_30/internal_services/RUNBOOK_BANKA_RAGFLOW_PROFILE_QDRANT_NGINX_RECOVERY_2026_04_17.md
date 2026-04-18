@@ -171,7 +171,7 @@ The corrected Banka HA/bootstrap source now does five things:
 - uses host-published direct app ports as nginx upstreams to avoid Podman bridge DNS/IP drift
 - pins Banka nginx to `docker.io/aliennor/nginx:1.27-alpine` instead of the floating `aliennor/nginx:alpine` tag
 
-Use installer `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r34`
+Use installer `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r33`
 or newer for first installs.
 
 ## 7) Rollback

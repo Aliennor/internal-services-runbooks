@@ -53,9 +53,9 @@ the script package locally:
 ```bash
 mkdir -p /opt/orbina-export-tools
 
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r33
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r34
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina-export-tools:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r33 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-17-r34 \
   /output
 
 install -m 0755 \

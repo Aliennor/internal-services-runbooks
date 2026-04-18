@@ -36,6 +36,7 @@ Currently published on the repo root:
 - [Banka dev108 browser proxy exception fix](checks/CHECK_BANKA_DEV108_BROWSER_PROXY_EXCEPTION_FIX_2026_04_17.md)
 - [Banka prod 106 → 107 SSH trust permission denied](checks/CHECK_BANKA_PROD_106_107_SSH_TRUST_PERMISSION_DENIED_2026_04_18.md)
 - [Banka prod 107 enable root pubkey login (fix for above)](checks/CHECK_BANKA_PROD_107_ENABLE_ROOT_PUBKEY_LOGIN_2026_04_18.md)
+- [Banka dev108 Langfuse init admin + ClickHouse race fix](checks/CHECK_BANKA_DEV108_LANGFUSE_INIT_ADMIN_AND_CH_RACE_2026_04_18.md)
 
 Checks publishing preference:
 

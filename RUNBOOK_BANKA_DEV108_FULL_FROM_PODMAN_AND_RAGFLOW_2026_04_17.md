@@ -1,4 +1,4 @@
-# Banka Dev 108 Install Runbook (r36)
+# Banka Dev 108 Install Runbook (r37)
 
 Date: 2026-04-17
 
@@ -6,7 +6,7 @@ Target: `10.11.115.108` (single-node dev, HTTPS + direct fallback).
 
 Images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r36`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r37`
 - encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-dev108-2026-04-17-r7`
 
 DNS (HTTPS):
@@ -25,13 +25,13 @@ All commands run on `10.11.115.108` as root.
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r36
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r37
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r36 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r37 \
   /output
 ```
 
-Skip if `/opt/orbina/internal_services` already holds the r36 tree.
+Skip if `/opt/orbina/internal_services` already holds the r37 tree.
 
 ## 2) Apply The Encrypted Config
 

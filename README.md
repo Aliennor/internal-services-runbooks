@@ -38,6 +38,7 @@ Currently published on the repo root:
 - [Banka prod 107 enable root pubkey login (fix for above)](checks/CHECK_BANKA_PROD_107_ENABLE_ROOT_PUBKEY_LOGIN_2026_04_18.md)
 - [Banka dev108 Langfuse init admin + ClickHouse race fix](checks/CHECK_BANKA_DEV108_LANGFUSE_INIT_ADMIN_AND_CH_RACE_2026_04_18.md)
 - [Banka Langfuse r35 web/worker startup deadlock unblock](checks/CHECK_BANKA_LANGFUSE_R35_WEB_WORKER_DEADLOCK_UNBLOCK_2026_04_18.md)
+- [Banka Langfuse ClickHouse DB mismatch fresh start (r33–r36 -> r37)](checks/CHECK_BANKA_LANGFUSE_CH_DB_MISMATCH_FRESH_START_2026_04_18.md)
 
 Checks publishing preference:
 

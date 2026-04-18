@@ -37,6 +37,7 @@ Currently published on the repo root:
 - [Banka prod 106 → 107 SSH trust permission denied](checks/CHECK_BANKA_PROD_106_107_SSH_TRUST_PERMISSION_DENIED_2026_04_18.md)
 - [Banka prod 107 enable root pubkey login (fix for above)](checks/CHECK_BANKA_PROD_107_ENABLE_ROOT_PUBKEY_LOGIN_2026_04_18.md)
 - [Banka dev108 Langfuse init admin + ClickHouse race fix](checks/CHECK_BANKA_DEV108_LANGFUSE_INIT_ADMIN_AND_CH_RACE_2026_04_18.md)
+- [Banka Langfuse r35 web/worker startup deadlock unblock](checks/CHECK_BANKA_LANGFUSE_R35_WEB_WORKER_DEADLOCK_UNBLOCK_2026_04_18.md)
 
 Checks publishing preference:
 

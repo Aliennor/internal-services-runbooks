@@ -1,4 +1,4 @@
-# Banka Prod 106/107 Install Runbook (r35)
+# Banka Prod 106/107 Install Runbook (r36)
 
 Date: 2026-04-17
 
@@ -6,7 +6,7 @@ Targets: `10.11.115.106` (active) and `10.11.115.107` (passive). HTTPS via LB, d
 
 Images:
 
-- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r35`
+- installer: `docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r36`
 - encrypted config: `docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r7`
 
 DNS (HTTPS via LB):
@@ -27,9 +27,9 @@ All commands run as root on the indicated host.
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r35
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r36
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r35 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r36 \
   /output
 ```
 
@@ -89,9 +89,9 @@ On `10.11.115.107`:
 
 ```bash
 mkdir -p /opt/orbina
-podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r35
+podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r36
 podman run --rm -e BUNDLE_MODE=force -v /opt/orbina:/output \
-  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r35 \
+  docker.io/aliennor/internal-services-katilim-install:banka-langfuse-2026-04-18-r36 \
   /output
 
 podman pull --tls-verify=false docker.io/aliennor/internal-services-katilim-config-encrypted:banka-langfuse-prod-2026-04-17-r7
